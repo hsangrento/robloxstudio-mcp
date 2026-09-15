@@ -1453,6 +1453,11 @@ export class StudioInstanceManager {
     return registryRecord ? this.refresh(this.fromRegistryRecord(registryRecord), snapshot) : undefined;
   }
 
+  peekProcessIdByInstanceId(instanceId: string): number | undefined {
+    const record = this.managedByInstanceId.get(instanceId);
+    return record?.nativeProcessId ?? record?.spawnPid;
+  }
+
   peekByLaunchId(launchId: string): ManagedStudioInstance | undefined {
     return [...this.managedByInstanceId.values(), ...this.pending].find(
       (record) => record.recordId === launchId,

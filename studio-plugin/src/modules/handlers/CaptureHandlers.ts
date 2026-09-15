@@ -371,6 +371,28 @@ function viewportSize(): { viewportWidth: number; viewportHeight: number } | und
 	};
 }
 
+interface DeviceSimulatorLike {
+	GetDeviceAsync(this: DeviceSimulatorLike): unknown;
+	GetResolutionAsync(this: DeviceSimulatorLike): Vector2;
+}
+
+function emulationState(): Record<string, unknown> {
+	const dynamicGame = game as unknown as { GetService(name: string): unknown };
+	const [serviceOk, service] = pcall(() => dynamicGame.GetService("StudioDeviceSimulatorService"));
+	if (!serviceOk || service === undefined) return { error: `StudioDeviceSimulatorService unavailable: ${tostring(service)}` };
+	const simulator = service as DeviceSimulatorLike;
+	const [deviceOk, device] = pcall(() => tostring(simulator.GetDeviceAsync()));
+	if (!deviceOk) return { error: `GetDeviceAsync failed: ${tostring(device)}` };
+	const deviceId = device as string;
+	if (deviceId === "default") return { active: false, deviceId };
+	const [resolutionOk, resolution] = pcall(() => simulator.GetResolutionAsync());
+	return {
+		active: true,
+		deviceId,
+		resolution: resolutionOk ? { width: (resolution as Vector2).X, height: (resolution as Vector2).Y } : undefined,
+	};
+}
+
 function hideMarkers(): void {
 	const existing = CoreGui.FindFirstChild(MARKER_GUI_NAME);
 	if (existing !== undefined) existing.Destroy();
@@ -421,7 +443,7 @@ function showMarkers(): unknown {
 	});
 
 	const framesRendered = waitForRenderedFrames();
-	return { success: true, ...size, markerSize: MARKER_SIZE, framesRendered };
+	return { success: true, ...size, markerSize: MARKER_SIZE, framesRendered, emulation: emulationState(), markerParent: gui.Parent?.GetFullName() };
 }
 
 // Host-capture support endpoint. action="show" draws the corner markers and
@@ -437,7 +459,7 @@ function captureMarkers(requestData: Record<string, unknown>): unknown {
 	if (action === "query") {
 		const size = viewportSize();
 		if (size === undefined) return { error: "No CurrentCamera; cannot read viewport size." };
-		return { success: true, ...size, markerSize: MARKER_SIZE };
+		return { success: true, ...size, markerSize: MARKER_SIZE, emulation: emulationState() };
 	}
 	return { error: `capture-markers action must be "show", "hide" or "query" (got ${tostring(action)})` };
 }
