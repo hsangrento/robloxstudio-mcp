@@ -20,7 +20,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 - **Geçici çözüm (sahada):** `roblox-game/tools/cap.ps1` — GDI `CopyFromScreen` + sabit kırpma (edit: 293,195,1326×662; play: 12,195,1608×662). Kırpma dikdörtgeni pane düzenine bağlı; araç viewport rect'ini döndürse buna gerek kalmazdı.
 - **İstek:** (a) hata mesajına marker sayısı/konumu ve emülasyon durumu; (b) `capture_screenshot` sonucuna `viewportRect` (ekran koordinatı) alanı; (c) marker bulunamazsa pencere yakalamasını **kırpmadan** döndüren `fallback: "window"` seçeneği.
 
-### 2. Play modundaki edit DataModel değişiklikleri çalışan oturuma yansımıyor → her düzeltme için stop/sync/start
+### 2. Play modundaki edit DataModel değişiklikleri çalışan oturuma yansımıyor → her düzeltme için stop/sync/start ✅ (commit 247c1a5, test tests/todo-2026-09-15/02-playtest-restart.mjs + studio-playtest-control.test.ts; kanıt kanit/02-playtest-restart.md)
 - **Belirti:** Kod düzeltmesi (`execute_luau` ile `Source` yazımı) ya da `Destroy` edit DM'de yapılınca çalışan play oturumu eski kalıyor (Roblox davranışı, doğru) ama araç seti bu döngüyü 3 çağrıya bölüyor: `solo_playtest stop` → `execute_luau` sync → `solo_playtest start` (start 5–10 s). Bu oturumda 6 kez.
 - **İstek:** `solo_playtest action="restart"` (stop + bekle + start; `mode` korunur) ve isteğe bağlı `before_start` Luau (edit peer'da çalışır) parametresi. `StopPlayMonitor.ts` zaten stop'u izliyor.
 - **Öncelik gerekçesi:** eş zamanlı ajan protokolünde playtest tek kilitli kaynak; her restart 20–30 s kuyruk.
@@ -61,7 +61,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 - **İstek:** `search_objects`/yeni `get_tags` aracı: bir nesnenin tag'leri + o tag'i `GetTagged` ile arayan scriptler (statik: `GetTagged("<tag>")` literal eşleşme; dinamik ise "tag listesi Config'ten" uyarısı). En azından `get_instance_properties` çıktısına `tags: [...]` alanı.
 - **Aday:** `studio-plugin/src/modules/ScriptSearch.ts`, `handlers/*` (instance properties).
 
-### 9. Studio penceresi küçültülünce her şey siyah; pencere handle'ı oturumdan oturuma değişiyor
+### 9. Studio penceresi küçültülünce her şey siyah; pencere handle'ı oturumdan oturuma değişiyor — `get_connected_instances` `windowTitle`/`processId` kısmı ✅ (commit 6e1b841, Ajan B); küçültülmüş pencereyi geri getirme Ajan A
 - **Belirti:** Kullanıcı Studio'yu küçültmüşse `capture_screenshot` siyah. Her oturumda `Get-Process RobloxStudioBeta | select MainWindowHandle` ile handle bulup `ShowWindow` gerekiyor (bu oturumda 132328; 3 Studio açıkken hangisinin hangi instance olduğu başlıkla eşleniyor).
 - **İstek:** `capture_screenshot` (ya da yeni `focus_window`) küçültülmüşse geri getirip önplana alsın (`host-capture.ts` zaten pencereyi buluyor); `get_connected_instances` çıktısına `windowHandle`/`windowTitle` ekle.
 
@@ -73,7 +73,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 
 ## P3 — iyileştirme
 
-### 11. `get_connected_instances` play durumunu göstermiyor
+### 11. `get_connected_instances` play durumunu göstermiyor ✅ (commit 6e1b841, test tests/todo-2026-09-15/11-connected-instances-playtest.mjs + studio-playtest-control.test.ts; kanıt kanit/11-connected-instances-playtest.md)
 - `peers` içinde `server`/`client-1` olması play'i ima ediyor ama `mode` (play/run) ve süresi yok. Ajanlara "referans play modunda, edit target kullan" demek zorunda kaldım. `solo_playtest status` her instance için ayrı çağrı.
 - **İstek:** `playtest: { active, mode, startedAt }` alanı.
 

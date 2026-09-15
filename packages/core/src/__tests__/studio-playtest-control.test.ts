@@ -2,6 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vm from 'vm';
 import { build as esbuildBuild, type Plugin } from 'esbuild';
+import { BridgeService } from '../bridge-service.js';
+import { RobloxStudioTools } from '../tools/index.js';
+import { TOOL_DEFINITIONS } from '../tools/definitions.js';
+import type { StudioProcessInfo, StudioProcessSnapshot } from '../studio-instance-manager.js';
 
 interface TestHandlersModule {
   startPlaytest(request: Record<string, unknown>): Record<string, unknown>;
@@ -213,5 +217,241 @@ describe('Studio playtest lifecycle control', () => {
     expect(harness.now).toBeGreaterThanOrEqual(10);
     expect(harness.now).toBeLessThanOrEqual(10.1);
     expect(harness.scheduledCount).toBe(1);
+  });
+});
+
+// TODO#2 / TODO#11 / TODO#9: solo_playtest restart; get_connected_instances playtest + window fields (fake bridge, queued plugin requests resolved by the test).
+const EDIT_PEER = {
+  peerId: 'edit-1',
+  transportPeerId: 'edit-1',
+  instanceId: 'instance:restart',
+  role: 'edit',
+  placeId: 0,
+  placeName: 'RestartPlace.rbxl',
+  dataModelName: 'RestartPlace',
+  isRunning: false,
+  pluginVersion: 'test-version',
+  pluginVariant: 'main',
+  timestamp: Date.now(),
+};
+
+function runtimePeer(role: 'server' | 'client', peerId: string, transportPeerId = 'server-1') {
+  return { ...EDIT_PEER, peerId, transportPeerId, role, isRunning: true };
+}
+
+async function claimQueued(bridge: BridgeService, transportPeerId: string) {
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const queued = bridge.claimNextRequestForTransport(transportPeerId, 'restart-test');
+    if (queued) return queued;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error(`No queued request for ${transportPeerId}`);
+}
+
+function parse(result: { content: Array<{ type: string; text?: string }> }): Record<string, unknown> {
+  return JSON.parse(result.content[0].text ?? '{}') as Record<string, unknown>;
+}
+
+function toolsWithWindows(bridge: BridgeService, processes: StudioProcessInfo[] = []): RobloxStudioTools {
+  const tools = new RobloxStudioTools(bridge);
+  (tools as unknown as { studioWindowLookup: () => Promise<StudioProcessSnapshot> }).studioWindowLookup =
+    async () => ({ status: 'ok', observedAt: Date.now(), processes });
+  return tools;
+}
+
+describe('TODO#2 solo_playtest restart', () => {
+  test('schema exposes restart, optional mode and before_start', () => {
+    const schema = TOOL_DEFINITIONS.find((tool) => tool.name === 'solo_playtest')!.inputSchema as {
+      properties: Record<string, { enum?: string[]; type?: string }>;
+    };
+    expect(schema.properties.action.enum).toContain('restart');
+    expect(schema.properties.before_start?.type).toBe('string');
+  });
+
+  test('restart stops, runs before_start on the edit peer, then starts with the previous mode', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge);
+    bridge.registerPeer(EDIT_PEER);
+    bridge.registerPeer(runtimePeer('server', 'server-1'));
+    bridge.registerPeer(runtimePeer('client', 'client-1'));
+
+    const resultPromise = tools.soloPlaytest('restart', undefined, 5, EDIT_PEER.instanceId, 'return workspace.Name');
+    const endpoints: string[] = [];
+
+    const stop = await claimQueued(bridge, 'edit-1');
+    endpoints.push(stop.endpoint);
+    bridge.resolveRequest(stop.requestId, { success: true, message: 'Playtest stopped.' });
+    bridge.unregisterPeer('server-1');
+
+    const luau = await claimQueued(bridge, 'edit-1');
+    endpoints.push(luau.endpoint);
+    expect(luau.data).toMatchObject({ code: 'return workspace.Name' });
+    bridge.resolveRequest(luau.requestId, { success: true, returnValue: 'Workspace' });
+
+    const start = await claimQueued(bridge, 'edit-1');
+    endpoints.push(start.endpoint);
+    expect(start.data).toMatchObject({ mode: 'play' });
+    bridge.resolveRequest(start.requestId, { success: true, message: 'started' });
+    bridge.registerPeer(runtimePeer('server', 'server-2', 'server-2'));
+    bridge.registerPeer(runtimePeer('client', 'client-2', 'server-2'));
+
+    const body = parse(await resultPromise);
+    expect(endpoints).toEqual(['/api/stop-playtest', '/api/execute-luau', '/api/start-playtest']);
+    expect(body).toMatchObject({
+      success: true,
+      action: 'restart',
+      mode: 'play',
+      wasRunning: true,
+      beforeStart: { success: true, returnValue: 'Workspace' },
+      roles: ['edit', 'server', 'client-1'],
+    });
+    expect(typeof body.stoppedInMs).toBe('number');
+    expect(typeof body.startedInMs).toBe('number');
+    expect(body.totalMs as number).toBeGreaterThanOrEqual(body.stoppedInMs as number);
+  });
+
+  test('restart with only a server peer preserves run mode', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge);
+    bridge.registerPeer(EDIT_PEER);
+    bridge.registerPeer(runtimePeer('server', 'server-1'));
+
+    const resultPromise = tools.soloPlaytest('restart', undefined, 5, EDIT_PEER.instanceId);
+    const stop = await claimQueued(bridge, 'edit-1');
+    bridge.resolveRequest(stop.requestId, { success: true });
+    bridge.unregisterPeer('server-1');
+    const start = await claimQueued(bridge, 'edit-1');
+    expect(start.endpoint).toBe('/api/start-playtest');
+    expect(start.data).toMatchObject({ mode: 'run' });
+    bridge.resolveRequest(start.requestId, { success: true });
+    bridge.registerPeer(runtimePeer('server', 'server-2', 'server-2'));
+
+    expect(parse(await resultPromise)).toMatchObject({ success: true, mode: 'run', wasRunning: true });
+  });
+
+  test('restart without an active playtest is a plain start that reuses the last mode', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge);
+    bridge.registerPeer(EDIT_PEER);
+
+    const firstStart = tools.soloPlaytest('start', 'run', 5, EDIT_PEER.instanceId);
+    const first = await claimQueued(bridge, 'edit-1');
+    bridge.resolveRequest(first.requestId, { success: true });
+    bridge.registerPeer(runtimePeer('server', 'server-1'));
+    expect(parse(await firstStart).success).toBe(true);
+    bridge.unregisterPeer('server-1');
+
+    const resultPromise = tools.soloPlaytest('restart', undefined, 5, EDIT_PEER.instanceId);
+    const start = await claimQueued(bridge, 'edit-1');
+    expect(start.endpoint).toBe('/api/start-playtest');
+    expect(start.data).toMatchObject({ mode: 'run' });
+    bridge.resolveRequest(start.requestId, { success: true });
+    bridge.registerPeer(runtimePeer('server', 'server-2', 'server-2'));
+
+    expect(parse(await resultPromise)).toMatchObject({
+      success: true, action: 'restart', mode: 'run', wasRunning: false, stoppedInMs: 0,
+    });
+  });
+
+  test('restart with no active playtest and no known mode fails before touching Studio', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge);
+    bridge.registerPeer(EDIT_PEER);
+
+    await expect(tools.soloPlaytest('restart', undefined, 5, EDIT_PEER.instanceId)).rejects.toThrow(/mode/);
+    expect(bridge.claimNextRequestForTransport('edit-1', 'restart-test')).toBeNull();
+  });
+
+  test('restart reports a before_start failure and does not start', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge);
+    bridge.registerPeer(EDIT_PEER);
+    bridge.registerPeer(runtimePeer('server', 'server-1'));
+
+    const resultPromise = tools.soloPlaytest('restart', undefined, 5, EDIT_PEER.instanceId, 'error("boom")');
+    const stop = await claimQueued(bridge, 'edit-1');
+    bridge.resolveRequest(stop.requestId, { success: true });
+    bridge.unregisterPeer('server-1');
+    const luau = await claimQueued(bridge, 'edit-1');
+    bridge.resolveRequest(luau.requestId, { success: false, error: 'boom' });
+
+    const body = parse(await resultPromise);
+    expect(body).toMatchObject({ success: false, action: 'restart', wasRunning: true, error: 'before_start_failed' });
+    expect(body.beforeStart).toMatchObject({ success: false, error: 'boom' });
+    expect(bridge.claimNextRequestForTransport('edit-1', 'restart-test')).toBeNull();
+  });
+});
+
+describe('TODO#11 / TODO#9 get_connected_instances playtest and window fields', () => {
+  test('idle instance reports playtest.active=false and no window when none is found', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge);
+    bridge.registerPeer(EDIT_PEER);
+
+    const body = parse(await tools.getConnectedInstances());
+    const instances = body.instances as Array<Record<string, unknown>>;
+    expect(instances).toHaveLength(1);
+    expect(instances[0].playtest).toEqual({ active: false });
+    expect(instances[0]).not.toHaveProperty('windowTitle');
+    expect(instances[0]).not.toHaveProperty('processId');
+  });
+
+  test('play session reports mode play with an ISO startedAt from the earliest runtime peer', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge);
+    bridge.registerPeer(EDIT_PEER);
+    const before = Date.now();
+    bridge.registerPeer(runtimePeer('server', 'server-1'));
+    bridge.registerPeer(runtimePeer('client', 'client-1'));
+
+    const body = parse(await tools.getConnectedInstances());
+    const playtest = (body.instances as Array<{ playtest: { active: boolean; mode?: string; startedAt?: string } }>)[0].playtest;
+    expect(playtest.active).toBe(true);
+    expect(playtest.mode).toBe('play');
+    const startedAt = Date.parse(playtest.startedAt ?? '');
+    expect(startedAt).toBeGreaterThanOrEqual(before - 1);
+    expect(startedAt).toBeLessThanOrEqual(Date.now() + 1);
+  });
+
+  test('server-only session reports mode run', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge);
+    bridge.registerPeer(EDIT_PEER);
+    bridge.registerPeer(runtimePeer('server', 'server-1'));
+
+    const body = parse(await tools.getConnectedInstances());
+    expect((body.instances as Array<{ playtest: unknown }>)[0].playtest).toMatchObject({ active: true, mode: 'run' });
+  });
+
+  test.each([
+    ['published place title', 'RestartPlace - Roblox Studio'],
+    ['local file title with a full path', String.raw`C:\places\RestartPlace.rbxl - Roblox Studio`],
+  ])('window title and process id are matched by place name (%s)', async (_label, title) => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge, [
+      { Id: 4242, Name: 'RobloxStudioBeta', MainWindowTitle: String.raw`C:\places\OtherPlace.rbxl - Roblox Studio` },
+      { Id: 1337, Name: 'RobloxStudioBeta', MainWindowTitle: title },
+    ]);
+    bridge.registerPeer(EDIT_PEER);
+
+    const body = parse(await tools.getConnectedInstances());
+    expect((body.instances as Array<Record<string, unknown>>)[0]).toMatchObject({
+      windowTitle: title,
+      processId: 1337,
+    });
+  });
+
+  test('ambiguous window titles leave the window fields out', async () => {
+    const bridge = new BridgeService();
+    const tools = toolsWithWindows(bridge, [
+      { Id: 1, Name: 'RobloxStudioBeta', MainWindowTitle: 'RestartPlace - Roblox Studio' },
+      { Id: 2, Name: 'RobloxStudioBeta', MainWindowTitle: 'RestartPlace - Roblox Studio' },
+    ]);
+    (tools as unknown as { instanceManager: unknown }).instanceManager = { get: async () => undefined };
+    bridge.registerPeer(EDIT_PEER);
+
+    const instance = (parse(await tools.getConnectedInstances()).instances as Array<Record<string, unknown>>)[0];
+    expect(instance).not.toHaveProperty('windowTitle');
+    expect(instance).not.toHaveProperty('processId');
   });
 });
