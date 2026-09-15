@@ -58,7 +58,7 @@ describe('mutation recovery tools', () => {
       return delivery.requestId;
     };
 
-    test('identical code twice → one dispatch; second result carries deduplicatedFrom', async () => {
+    test('identical code while the first is still pending → one dispatch; second result carries deduplicatedFrom', async () => {
       const first = tools.executeLuau(code, 'edit', 'instance:recovery');
       const second = tools.executeLuau(code, 'edit', 'instance:recovery');
       await flush();
@@ -70,9 +70,41 @@ describe('mutation recovery tools', () => {
       expect(firstBody).toMatchObject({ returnValue: 'one', operationId: dispatchedId, dedupe: 'auto', queued_ahead: 0 });
       expect(firstBody.deduplicatedFrom).toBeUndefined();
       expect(secondBody).toMatchObject({ returnValue: 'one', operationId: dispatchedId, dedupe: 'auto', deduplicatedFrom: dispatchedId });
+    });
+
+    test('a delivered result never dedupes the next identical call → two dispatches, no deduplicatedFrom', async () => {
+      const first = tools.executeLuau(code, 'edit', 'instance:recovery');
+      await flush();
+      const firstId = settleNext('one');
+      expect(JSON.parse((await first).content[0].text)).toMatchObject({ returnValue: 'one', operationId: firstId });
+      const second = tools.executeLuau(code, 'edit', 'instance:recovery');
+      await flush();
+      const secondId = settleNext('two');
+      expect(secondId).toBe(`${firstId}-2`);
+      const secondBody = JSON.parse((await second).content[0].text);
+      expect(secondBody).toMatchObject({ returnValue: 'two', operationId: secondId, dedupe: 'auto' });
+      expect(secondBody.deduplicatedFrom).toBeUndefined();
       const third = tools.executeLuau(code, 'edit', 'instance:recovery');
+      await flush();
+      expect(settleNext('three')).toBe(`${firstId}-3`);
+      expect(JSON.parse((await third).content[0].text)).toMatchObject({ returnValue: 'three' });
+    });
+
+    test('a result settled after its waiter timed out (undelivered) dedupes the next identical call', async () => {
+      const first = tools.executeLuau(code, 'edit', 'instance:recovery');
+      const failure = expect(first).rejects.toMatchObject({ code: 'request_timeout' });
+      await flush();
+      const delivery = bridge.claimNextRequestForTransport('edit', 'socket');
+      expect(delivery?.requestId).toMatch(/^auto-[0-9a-f]{64}$/);
+      await jest.advanceTimersByTimeAsync(30_000);
+      await failure;
+      expect(bridge.settleTransportResponse('edit', delivery!.requestId, { success: true, returnValue: 'late' })).toBe('accepted');
+      expect(bridge.getRequestStatus(delivery!.requestId)).toMatchObject({ state: 'settled', waiterEndedAt: expect.any(Number) });
+      const retry = tools.executeLuau(code, 'edit', 'instance:recovery');
       expect(bridge.claimNextRequestForTransport('edit', 'socket')).toBeNull();
-      expect(JSON.parse((await third).content[0].text)).toMatchObject({ returnValue: 'one', deduplicatedFrom: dispatchedId });
+      expect(JSON.parse((await retry).content[0].text)).toMatchObject({
+        returnValue: 'late', operationId: delivery!.requestId, dedupe: 'auto', deduplicatedFrom: delivery!.requestId,
+      });
     });
 
     test('different code → two dispatches with distinct auto ids', async () => {

@@ -2117,12 +2117,14 @@ export class RobloxStudioTools {
       const requestId = autoOperationId(peerId, endpoint, data, attempt);
       const status = await this.bridge.getRequestStatusEverywhere(requestId);
       if (!status) return { requestId };
-      if (status.state === 'pending' || (status.state === 'settled' && !status.resultUnavailable)) {
-        return { requestId, deduplicatedFrom: requestId };
+      if (status.state === 'pending') return { requestId, deduplicatedFrom: requestId };
+      if (status.state === 'settled') {
+        if (status.waiterEndedAt === undefined) continue;
+        if (!status.resultUnavailable) return { requestId, deduplicatedFrom: requestId };
       }
       if (status.executionOutcome === 'not_executed') continue;
       throw new RequestFailure(
-        `Request ${requestId} already exists: ${status.state}; ${status.stage}; ${status.outcome}; identical code was sent to this peer within the retention window and its outcome is unknown; call get_request_status with operation_id ${requestId}; do not resend; pass dedupe:false or a new operation_id to run it again`,
+        `Request ${requestId} already exists: ${status.state}; ${status.stage}; ${status.outcome}; identical code was sent to this peer within the retention window, its waiter ended and its outcome is unknown; call get_request_status with operation_id ${requestId}; do not resend; pass dedupe:false or a new operation_id to run it again`,
         'operation_not_replayed',
         { requestId, targetPeerId: peerId, stage: status.stage, outcome: 'unknown' },
       );

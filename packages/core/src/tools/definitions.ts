@@ -399,7 +399,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         dedupe: {
           type: ['string', 'boolean'],
           enum: ['auto', false],
-          description: 'auto (default): identical code to the same peer within 5 min reuses the retained outcome; false: always run.'
+          description: 'auto (default): identical code reuses a pending or undelivered (timed-out) outcome within 5 min; delivered results never block a rerun. false: always run.'
         }
       },
       required: ['code']
