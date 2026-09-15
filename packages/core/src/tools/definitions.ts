@@ -354,7 +354,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
           type: 'string',
           minLength: 1,
           maxLength: 128,
-          description: 'Unique recovery ID; reuse only for identical arguments.'
+          description: 'Unique recovery ID; reuse only for identical arguments. Omitted: derived from peer+code (dedupe auto).'
         },
         code: {
           type: 'string',
@@ -367,6 +367,17 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         instance_id: {
           type: 'string',
           description: 'Studio process ID when ambiguous.'
+        },
+        max_output_bytes: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 52428800,
+          description: 'Return value byte budget; default 65536. Result reports truncated, totalBytes, returnedBytes.'
+        },
+        dedupe: {
+          type: ['string', 'boolean'],
+          enum: ['auto', false],
+          description: 'auto (default): identical code to the same peer within 5 min reuses the retained outcome; false: always run.'
         }
       },
       required: ['code']

@@ -989,4 +989,47 @@ describe('BridgeService', () => {
       expect(bridge.getPeers()).toEqual([]);
     });
   });
+
+  describe('TODO#7 queue position and timeout guidance', () => {
+    beforeEach(() => {
+      register(bridge, { peerId: 'edit-peer', instanceId: 'instance:queue', role: 'edit' });
+      register(bridge, { peerId: 'server-peer', transportPeerId: 'edit-peer', instanceId: 'instance:queue', role: 'server' });
+      register(bridge, { peerId: 'other-edit', instanceId: 'instance:other', role: 'edit' });
+    });
+
+    afterEach(() => {
+      bridge.clearAllPendingRequests();
+    });
+
+    test('queuedAhead counts unsettled requests sharing the target transport at enqueue time', async () => {
+      const ids = ['q0', 'q1', 'q2', 'q3', 'q4'];
+      const promises = ids.map((id, index) => bridge.sendRequest('/api/execute-luau', { code: `return ${index}` }, index === 2 ? 'server-peer' : 'edit-peer', 30_000, undefined, id));
+      const other = bridge.sendRequest('/api/execute-luau', { code: 'return 9' }, 'other-edit', 30_000, undefined, 'other');
+      expect(ids.map((id) => bridge.getRequestStatus(id)?.queuedAhead)).toEqual([0, 1, 2, 3, 4]);
+      expect(bridge.getRequestStatus('other')?.queuedAhead).toBe(0);
+      for (let claimed = bridge.claimNextRequestForTransport('edit-peer', 'socket'); claimed; claimed = bridge.claimNextRequestForTransport('edit-peer', 'socket')) {
+        expect(bridge.settleTransportResponse('edit-peer', claimed.requestId, { success: true })).toBe('accepted');
+      }
+      await Promise.all(promises);
+      const late = bridge.sendRequest('/api/execute-luau', { code: 'return late' }, 'edit-peer', 30_000, undefined, 'late');
+      expect(bridge.getRequestStatus('late')?.queuedAhead).toBe(0);
+      bridge.claimNextRequestForTransport('edit-peer', 'socket');
+      bridge.settleTransportResponse('edit-peer', 'late', { success: true });
+      bridge.claimNextRequestForTransport('other-edit', 'socket');
+      bridge.settleTransportResponse('other-edit', 'other', { success: true });
+      await Promise.all([late, other]);
+    });
+
+    test('a timed-out waiter names get_request_status and the operation id', async () => {
+      const pending = bridge.sendRequest('/api/execute-luau', { code: 'task.wait(60)' }, 'edit-peer', 30_000, undefined, 'slow-op');
+      const failure = expect(pending).rejects.toMatchObject({
+        code: 'request_timeout',
+        message: expect.stringContaining('call get_request_status with operation_id slow-op; do not resend'),
+        details: { requestId: 'slow-op', stage: 'dispatched', outcome: 'unknown' },
+      });
+      expect(bridge.claimNextRequestForTransport('edit-peer', 'socket')?.requestId).toBe('slow-op');
+      await jest.advanceTimersByTimeAsync(30_000);
+      await failure;
+    });
+  });
 });

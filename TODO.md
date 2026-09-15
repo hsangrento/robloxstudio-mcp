@@ -40,7 +40,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 
 ## P2 — zaman kaybettiren
 
-### 5. `execute_luau` büyük dönüşleri sessizce kesiyor
+### 5. `execute_luau` büyük dönüşleri sessizce kesiyor ✅ (commit f8a36d5, test tests/todo-2026-09-15/05-execute-luau-truncation.mjs + http-body-limits.test.ts; ölçüm: depo katmanları 2 MB'a kadar kesmiyor, kırpma istemci tarafı — kanıt kanit/05-execute-luau-truncation.md)
 - **Belirti:** 30 k+ karakterlik `return table.concat(...)` sonuçları sonu kırpılmış geliyor; kırpıldığına dair işaret yok ("truncated": true gibi). Envanter dökümlerinde ajanlar 3–4 parçaya bölmek zorunda kaldı.
 - **İstek:** sonuçta `truncated: true` + `totalBytes`; `execute_luau` için `max_output_bytes` parametresi ya da büyük çıktıyı dosyaya yazıp yol döndüren `output_path`.
 - **Aday:** `packages/core/src/http-body-limits.ts`, `studio-plugin/src/modules/LuauExec.ts`.
@@ -51,7 +51,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 - **Ek:** aynı asset için "User is not authorized to access Asset" hatası 60+ kez tekrarlandı (`138528754708450`, `72885128103622`…); `dedupe: true` (aynı mesaj → `count`) çok yer açar.
 - **Aday:** `studio-plugin/src/modules/RuntimeLogBuffer.ts`, `packages/core/src/tools/definitions.ts` (get_runtime_logs şeması).
 
-### 7. Eş zamanlı çok ajan → kuyruk, timeout, tekrar deneme
+### 7. Eş zamanlı çok ajan → kuyruk, timeout, tekrar deneme ✅ (commit 0fb1d19, test tests/todo-2026-09-15/07-queue-dedupe.mjs + request-recovery-tools/bridge-service/payload-timeout-diagnostics jest; kanıt kanit/07-queue-dedupe.md)
 - **Belirti:** 5 ajan aynı instance'a `execute_luau`/`export_rbxm` atınca 60 s timeout'lar; ajanlar `get_request_status` yerine aynı kodu tekrar gönderdi (operation_id vermedikleri için dedupe olmadı). Mutasyonlar (örn. dekor yerleştirme) iki kez çalışma riski.
 - **İstek:** (a) `execute_luau` sonucu `queued_ahead: N` ve tahmini bekleme; (b) `operation_id` yoksa sunucu kodun hash'inden otomatik türetsin (aynı kod + aynı instance 5 dk içinde → retained outcome); (c) timeout'ta dönen hata metnine doğrudan "`get_request_status` çağır, tekrar gönderme" cümlesi.
 - **Aday:** `packages/core/src/bridge-service.ts`, `managed-instance-registry.ts`, `studio-plugin/src/modules/CooperativeJobRunner.ts`.
