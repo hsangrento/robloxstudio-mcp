@@ -25,13 +25,13 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 - **İstek:** `solo_playtest action="restart"` (stop + bekle + start; `mode` korunur) ve isteğe bağlı `before_start` Luau (edit peer'da çalışır) parametresi. `StopPlayMonitor.ts` zaten stop'u izliyor.
 - **Öncelik gerekçesi:** eş zamanlı ajan protokolünde playtest tek kilitli kaynak; her restart 20–30 s kuyruk.
 
-### 3. `import_rbxm` `StarterPlayer.StarterCharacterScripts` altına parent alamadı
+### 3. `import_rbxm` `StarterPlayer.StarterCharacterScripts` altına parent alamadı ✅ (commit dfda99e, test tests/todo-2026-09-15/03-import-service-root.mjs; ham hata "Cannot change Parent of type StarterCharacterScripts" — StarterCharacterScripts servis değil, StarterPlayer'ın taşınamaz çocuğu; kök servis/kilitli ise çocuklar açılır, `unwrappedServiceRoot`)
 - **Belirti:** `ke-ui-StarterCharacterScripts.rbxm` (2 LocalScript, 1 706 B) `parent_path="StarterPlayer.StarterCharacterScripts"` ile import edilemedi (ajan raporu: "rbxm parent alamadı"); aynı dosya `StarterGui`/`ReplicatedStorage` hedefli diğer 4 import sorunsuz. Scriptler elle `Instance.new("LocalScript")` + `Source` ile yaratıldı.
 - **Yeniden üretme:** `export_rbxm instance_paths=["StarterPlayer.StarterCharacterScripts"]` → sonra `import_rbxm path=… parent_path="StarterPlayer.StarterCharacterScripts"` (hedef Studio farklı instance).
 - **Şüphe:** Kök nesne `StarterCharacterScripts` servisinin kendisi olarak serileşmiş (servis kökü import edilmeye çalışılınca "Parent locked"); import'ta kök bir servis ise **çocuklarını** parent'a taşımak gerekir. `studio-plugin/src/modules/handlers/SerializationHandlers.ts`.
 - **İstek:** servis köklü rbxm'de çocukları aç; hata mesajına Roblox'un döndürdüğü metni ("The Parent property of X is locked…") ekle.
 
-### 4. `set_properties` `Workspace.StreamingMinRadius` / `StreamingTargetRadius` yazamıyor
+### 4. `set_properties` `Workspace.StreamingMinRadius` / `StreamingTargetRadius` yazamıyor ✅ (commit b319a71, test tests/todo-2026-09-15/04-streaming-props.mjs; API dump: `NotScriptable` — docs security None, PluginSecurity değil; eklentiden yazılamadığı Studio'da ham pcall ile doğrulandı; `reason` + `inaccessible: [...]`)
 - **Belirti:** `"StreamingMinRadius is not a valid member of Workspace"` (önceki oturum, ROADMAP S-15). Eklenti bağlamında bu özellikler `Workspace` üzerinde okunamıyor da (`get_instance_properties` boş). Kullanıcı Properties panelinden elle ayarlamak zorunda.
 - **Şüphe:** Bu özellikler plugin security'de `RobloxScriptSecurity`/`PluginSecurity` altında; `pcall` ile denenip düzgün mesaj ("bu özellik eklentiden yazılamaz, Properties panelinden ayarla") verilmeli.
 - **Aday:** `studio-plugin/src/modules/handlers/PropertyHandlers.ts` — bilinen "eklentiden erişilemez" özellik listesi + açıklayıcı hata.
@@ -80,10 +80,10 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 ### 12. `eval_server_runtime` ile hızlı `HumanoidRootPart.CFrame` atamaları oyunun anti-cheat'ine takılıyor
 - Aracın hatası değil; ama "oyuncuyu X'e götür" testleri için `Humanoid:MoveTo` döngüsü yazmak gerekti. Tool-guides'a not: "sunucu tarafı ışınlamada oyunun hız sınırlarını (bu oyunda 20 stud/örnek) düşün; `MoveTo` ya da oyunun kendi teleport API'si".
 
-### 13. `export_rbxm` boyut/sayı raporu
+### 13. `export_rbxm` boyut/sayı raporu ✅ (commit d0f432c, test tests/todo-2026-09-15/13-export-report.mjs; `bytes`, `instanceCount`, `rootClass`, `rootName`, `rootClasses`, `rootNames`)
 - Export sonucu yalnız yol döndürüyor; ajanlar dosya boyutunu `ls` ile, nesne sayısını ayrıca `GetDescendants` ile doğruladı. **İstek:** sonuçta `bytes`, `instanceCount`, `rootClass` (madde 3'ü de erken yakalar).
 
-### 14. `import_rbxm` sonrası sayım/doğrulama
+### 14. `import_rbxm` sonrası sayım/doğrulama ✅ (commit d0f432c, test tests/todo-2026-09-15/13-export-report.mjs ile birleşik; `instanceCount`, `rootNames`, `rootClasses`)
 - Import başarılı dönse de kaç nesne geldiği bilinmiyor; her import'tan sonra `execute_luau` ile `GetDescendants` sayımı yapıldı. **İstek:** sonuçta `instanceCount`, `rootNames`.
 
 ### 15. `get_runtime_logs` `filter` yalnız alt dize; `level` ve `since` yok
