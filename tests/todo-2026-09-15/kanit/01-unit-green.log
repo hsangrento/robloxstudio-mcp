@@ -1,0 +1,3 @@
+PASS src/__tests__/todo-01-capture-markers.test.ts
+PASS src/__tests__/host-capture.test.ts
+Tests:       32 passed, 32 total
