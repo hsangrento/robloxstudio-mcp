@@ -45,7 +45,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 - **İstek:** sonuçta `truncated: true` + `totalBytes`; `execute_luau` için `max_output_bytes` parametresi ya da büyük çıktıyı dosyaya yazıp yol döndüren `output_path`.
 - **Aday:** `packages/core/src/http-body-limits.ts`, `studio-plugin/src/modules/LuauExec.ts`.
 
-### 6. `get_runtime_logs`: hata metni ile "Script '…', Line N" kaynak satırı ayrı kayıtlar
+### 6. `get_runtime_logs`: hata metni ile "Script '…', Line N" kaynak satırı ayrı kayıtlar ✅ (commit 17d2ec8, test tests/todo-2026-09-15/06-runtime-log-merge.mjs + packages/core/src/__tests__/todo-06-runtime-log-merge.test.ts)
 - **Belirti:** Bir hata 2–3 ayrı `entries` satırı: `ERR` mesaj, `INFO "Script 'Players.x.PlayerGui…', Line 5"`, `INFO "Stack Begin/End"`. `filter="Script '"` ile hata metni gelmiyor; `filter=":"` ile hepsi ama asset-izin spam'i (aşağıda) araya giriyor.
 - **İstek:** `MessageOutput` + `MessageError` + stack satırlarını tek kayıtta birleştir (`stack: [...]`), ya da en azından `level="ERR"` filtresi (`level` parametresi yok).
 - **Ek:** aynı asset için "User is not authorized to access Asset" hatası 60+ kez tekrarlandı (`138528754708450`, `72885128103622`…); `dedupe: true` (aynı mesaj → `count`) çok yer açar.
@@ -56,7 +56,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 - **İstek:** (a) `execute_luau` sonucu `queued_ahead: N` ve tahmini bekleme; (b) `operation_id` yoksa sunucu kodun hash'inden otomatik türetsin (aynı kod + aynı instance 5 dk içinde → retained outcome); (c) timeout'ta dönen hata metnine doğrudan "`get_request_status` çağır, tekrar gönderme" cümlesi.
 - **Aday:** `packages/core/src/bridge-service.ts`, `managed-instance-registry.ts`, `studio-plugin/src/modules/CooperativeJobRunner.ts`.
 
-### 8. `grep_scripts` etiket (CollectionService) tabanlı kullanımı görmüyor
+### 8. `grep_scripts` etiket (CollectionService) tabanlı kullanımı görmüyor ✅ (commit 5191576, test tests/todo-2026-09-15/08-tags.mjs + packages/core/src/__tests__/todo-08-tags.test.ts)
 - **Belirti:** `Tikfinity` düğmesini runtime'da `Visible=true` yapan kodu bulmak için `grep_scripts pattern="Tikfinity"` → 0 sonuç (303 script). Referans UIHandler nesneleri `CollectionService:GetTagged("…")` ile buluyor; tag adı script'te geçmiyor (Config tablosundan geliyor). Çözüm nesneyi silmek oldu.
 - **İstek:** `search_objects`/yeni `get_tags` aracı: bir nesnenin tag'leri + o tag'i `GetTagged` ile arayan scriptler (statik: `GetTagged("<tag>")` literal eşleşme; dinamik ise "tag listesi Config'ten" uyarısı). En azından `get_instance_properties` çıktısına `tags: [...]` alanı.
 - **Aday:** `studio-plugin/src/modules/ScriptSearch.ts`, `handlers/*` (instance properties).
@@ -77,7 +77,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 - `peers` içinde `server`/`client-1` olması play'i ima ediyor ama `mode` (play/run) ve süresi yok. Ajanlara "referans play modunda, edit target kullan" demek zorunda kaldım. `solo_playtest status` her instance için ayrı çağrı.
 - **İstek:** `playtest: { active, mode, startedAt }` alanı.
 
-### 12. `eval_server_runtime` ile hızlı `HumanoidRootPart.CFrame` atamaları oyunun anti-cheat'ine takılıyor
+### 12. `eval_server_runtime` ile hızlı `HumanoidRootPart.CFrame` atamaları oyunun anti-cheat'ine takılıyor ✅ (commit 6c93070, test packages/core/src/__tests__/todo-16-tool-guides.test.ts)
 - Aracın hatası değil; ama "oyuncuyu X'e götür" testleri için `Humanoid:MoveTo` döngüsü yazmak gerekti. Tool-guides'a not: "sunucu tarafı ışınlamada oyunun hız sınırlarını (bu oyunda 20 stud/örnek) düşün; `MoveTo` ya da oyunun kendi teleport API'si".
 
 ### 13. `export_rbxm` boyut/sayı raporu ✅ (commit d0f432c, test tests/todo-2026-09-15/13-export-report.mjs; `bytes`, `instanceCount`, `rootClass`, `rootName`, `rootClasses`, `rootNames`)
@@ -86,10 +86,10 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 ### 14. `import_rbxm` sonrası sayım/doğrulama ✅ (commit d0f432c, test tests/todo-2026-09-15/13-export-report.mjs ile birleşik; `instanceCount`, `rootNames`, `rootClasses`)
 - Import başarılı dönse de kaç nesne geldiği bilinmiyor; her import'tan sonra `execute_luau` ile `GetDescendants` sayımı yapıldı. **İstek:** sonuçta `instanceCount`, `rootNames`.
 
-### 15. `get_runtime_logs` `filter` yalnız alt dize; `level` ve `since` yok
+### 15. `get_runtime_logs` `filter` yalnız alt dize; `level` ve `since` yok ✅ (commit 17d2ec8, test tests/todo-2026-09-15/06-runtime-log-merge.mjs + runtime-log-context.test.ts "TODO #15")
 - `level: "ERR"|"WARN"`, `since_ts`, `exclude` (asset-izin spam'ini dışlamak için) parametreleri.
 
-### 16. Tool-guides: eş zamanlı ajan protokolü için kısa bir bölüm
+### 16. Tool-guides: eş zamanlı ajan protokolü için kısa bir bölüm ✅ (commit 6c93070, test packages/core/src/__tests__/todo-16-tool-guides.test.ts)
 - Sahada işe yarayan kurallar (`robloxstudio://tool-guides`'a eklenebilir): tek playtest kilidi (orkestratör), ajan başına disjoint DataModel alt ağacı, `operation_id` zorunlu, edit DM'e yazınca play'i yeniden başlat, büyük çıktıları parçala, referans instance salt-okunur (`target=edit`).
 
 ---

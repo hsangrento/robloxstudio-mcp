@@ -274,10 +274,12 @@ function getInstanceProperties(requestData: Record<string, unknown>) {
 
 	if (success) {
 		const inaccessible = PropertyAccess.listInaccessibleProperties(instance);
+		const [tagsOk, tags] = pcall(() => game.GetService("CollectionService").GetTags(instance));
 		return {
 			instancePath,
 			className: instance.ClassName,
 			properties,
+			tags: tagsOk ? tags : [],
 			...(inaccessible.size() > 0 ? { inaccessible } : {}),
 		};
 	} else {

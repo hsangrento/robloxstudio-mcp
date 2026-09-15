@@ -1,0 +1,1055 @@
+
+> @chrrxs/robloxstudio-mcp-core@3.1.4 test
+> jest
+
+PASS src/__tests__/studio-script-search.test.ts (7.767 s)
+PASS src/__tests__/studio-grep-responsiveness.test.ts (7.753 s)
+PASS src/__tests__/creator-store-assets.test.ts (8.593 s)
+PASS src/__tests__/studio-response-delivery.test.ts (8.777 s)
+PASS src/__tests__/todo-08-tags.test.ts (9.097 s)
+PASS src/__tests__/bridge-service.test.ts
+PASS src/__tests__/studio-transport.test.ts
+PASS src/__tests__/tool-schema.test.ts (9.644 s)
+PASS src/__tests__/plugin-installation.test.ts
+  ● Console
+
+    console.log
+      Removed conflicting MCPInspectorPlugin.rbxmx.
+
+      at handleVariantConflict (src/install-plugin-helpers.ts:245:7)
+
+PASS src/__tests__/mcp-runtime.test.ts (10.262 s)
+  ● Console
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at src/__tests__/mcp-runtime.test.ts:580:33
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at src/__tests__/mcp-runtime.test.ts:580:33
+
+PASS src/__tests__/http-server.test.ts (10.832 s)
+  ● Console
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:79:44)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:485:44)
+
+    console.error
+      [plugin-version-rejected] Studio plugin v1.9.0 (main) does not match MCP server v2.0.0 for instance:test/edit
+
+      652 |         if (rejectedVersionPeers.size >= 256) rejectedVersionPeers.clear();
+      653 |         rejectedVersionPeers.add(peerId);
+    > 654 |         console.error(
+          |                 ^
+      655 |           `[plugin-version-rejected] Studio plugin v${pluginVersion} (${pluginVariant}) ` +
+      656 |           `does not match MCP server v${serverVersion} for ${instanceId}/${role}`,
+      657 |         );
+
+      at src/http-server.ts:654:17
+      at Layer.handle [as handle_request] (../../node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (../../node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (../../node_modules/express/lib/router/layer.js:95:5)
+      at ../../node_modules/express/lib/router/index.js:284:15
+      at router.process_params (../../node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/express/lib/router/index.js:280:10)
+      at Layer.handle [as handle_request] (../../node_modules/express/lib/router/layer.js:91:12)
+      at trim_prefix (../../node_modules/express/lib/router/index.js:328:13)
+      at ../../node_modules/express/lib/router/index.js:286:9
+      at router.process_params (../../node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/express/lib/router/index.js:280:10)
+      at urlencodedParser (../../node_modules/body-parser/lib/types/urlencoded.js:86:7)
+      at Layer.handle [as handle_request] (../../node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (../../node_modules/express/lib/router/index.js:328:13)
+      at ../../node_modules/express/lib/router/index.js:286:9
+      at router.process_params (../../node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/express/lib/router/index.js:280:10)
+      at ../../node_modules/body-parser/lib/read.js:137:5
+      at invokeCallback (../../node_modules/raw-body/index.js:238:16)
+      at done (../../node_modules/raw-body/index.js:227:7)
+      at IncomingMessage.onEnd (../../node_modules/raw-body/index.js:287:7)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-server.test.ts:46:27)
+
+PASS src/__tests__/proxy-runtime-logs.test.ts
+PASS src/__tests__/request-recovery-tools.test.ts
+PASS src/__tests__/http-body-limits.test.ts
+PASS src/__tests__/integration.test.ts
+  ● Console
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/integration.test.ts:51:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/integration.test.ts:51:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/integration.test.ts:51:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/integration.test.ts:51:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/integration.test.ts:51:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/integration.test.ts:51:27)
+
+PASS src/__tests__/selection.test.ts
+PASS src/__tests__/payload-timeout-diagnostics.test.ts
+PASS src/__tests__/studio-skills.test.ts
+PASS src/__tests__/runtime-log-context.test.ts
+PASS src/__tests__/http-security.test.ts (14.887 s)
+  ● Console
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/http-security.test.ts:314:27)
+
+PASS src/__tests__/host-capture.test.ts
+PASS src/__tests__/stdio-transport.test.ts
+PASS src/__tests__/runtime-log-responsiveness.test.ts
+PASS src/__tests__/roblox-docs.test.ts
+PASS src/__tests__/proxy-bridge-service.test.ts
+PASS src/__tests__/studio-platform.test.ts
+PASS src/__tests__/todo-16-tool-guides.test.ts (5.973 s)
+PASS src/__tests__/image-decode.test.ts
+PASS src/__tests__/mcp-compat.test.ts
+PASS src/__tests__/roblox-cookie-client.test.ts
+PASS src/__tests__/studio-handler-failures.test.ts (9.714 s)
+PASS src/__tests__/managed-instance-registry.test.ts
+PASS src/__tests__/studio-playtest-control.test.ts
+PASS src/__tests__/studio-process-identity.test.ts
+PASS src/__tests__/studio-cooperative-job-runner.test.ts (5.298 s)
+Get-Process : Access denied
+At line:1 char:226
++ ...  { $studio = @(Get-Process RobloxStudioBeta -ErrorAction Stop) } catc ...
++                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : PermissionDenied: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : PermissionDenied,Get-Process
+ 
+PASS src/__tests__/script-source-safety.test.ts
+PASS src/__tests__/todo-06-runtime-log-merge.test.ts
+PASS src/__tests__/server-primary-mode.test.ts (9.891 s)
+  ● Console
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at RobloxStudioMCPServer.run (src/server.ts:79:36)
+      at Object.<anonymous> (src/__tests__/server-primary-mode.test.ts:55:25)
+
+PASS src/__tests__/studio-process-enumeration.test.ts (20.345 s)
+
+  ●  Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "[robloxstudio-mcp] managed Studio connection association failed: Error: ENOENT: no such file or directory, open 'C:\Users\hasan\AppData\Local\robloxstudio-mcp\managed-instances\v1\.lock\owner.json'".
+
+      830 | \tlocal valueType = typeof(value)
+      831 | \tif valueType == "Vector2" then
+    > 832 | \t\treturn { x = value.X, y = value.Y, width = value.X, height = value.Y }
+          |                         ^
+      833 | \tend
+      834 | \tif valueType == "EnumItem" then
+      835 | \t\treturn value.Name
+
+      at console.warn (../../node_modules/@jest/console/build/BufferedConsole.js:191:10)
+      at src/tools/index.ts:832:25
+
+PASS src/__tests__/smoke.test.ts (41.413 s)
+  ● Console
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/smoke.test.ts:382:33)
+
+    console.warn
+      responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+      373 |
+      374 | export function createToolHttpHandler(options: Omit<McpRuntimeOptions, 'era'>): McpHttpHandler {
+    > 375 |   return createMcpHandler(
+          |                          ^
+      376 |     (context) => createToolServer({ ...options, era: context.era }),
+      377 |     {
+      378 |       responseMode: 'json',
+
+      at createMcpHandler (../../node_modules/@modelcontextprotocol/server/src/server/createMcpHandler.ts:639:17)
+      at createToolHttpHandler (src/mcp-runtime.ts:375:26)
+      at createHttpServer (src/http-server.ts:935:28)
+      at Object.<anonymous> (src/__tests__/smoke.test.ts:398:33)
+
+
+Test Suites: 40 passed, 40 total
+Tests:       661 passed, 661 total
+Snapshots:   0 total
+Time:        42.54 s, estimated 48 s
+Ran all test suites.
