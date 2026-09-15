@@ -1,0 +1,37 @@
+Test process using port 50943 (automatically assigned)
+Full integration suite using port 50943 (from ROBLOX_STUDIO_PORT)
+Installing worktree plugin C:\Users\hasan\Desktop\mcp\wt\E\studio-plugin\MCPPlugin.rbxmx
+Installed MCPPlugin.rbxmx to C:\Users\hasan\AppData\Local\Temp\robloxstudio-mcp-workers\run-all-7HguN7\RsmcpIsolatedPlugins\MCPPlugin.rbxmx
+Launched managed Studio instance instance:ugh-0m6
+
+=== TODO #8: tags on get_instance_properties and search_tags ===
+  ✓ edit DM staged tagged parts and two scripts
+  [grep_scripts TODO8Dyn] {"scriptsMatched":0,"scriptsSearched":2}
+  ✓ symptom: grep_scripts cannot see the attribute-driven tag use
+  [get_instance_properties] {"tags":["TODO8"],"properties":["ChildCount","Parent","CFrame","Material","Size","BottomSurface","CanCollide","Position","Anchored","Rotation","Transparency","Name","ClassName","Color","BrickColor","Shape","TopSurface"]}
+  ✓ get_instance_properties lists tags (got ["TODO8"])
+  [search_tags TODO8] {"instances":["game.Workspace.TODO8.TODO8Part"],"truncated":false,"scripts":[{"line":2,"instancePath":"game.ServerScriptService.TODO8Static","className":"Script","text":"for _, inst in ipairs(CS:GetTagged(\"TODO8\")) do","api":"GetTagged"}],"scriptsSearched":2,"scriptsTruncated":false,"instanceCount":1,"tag":"TODO8"}
+  ✓ search_tags echoes the tag
+  ✓ instances hold only the tagged part (got ["game.Workspace.TODO8.TODO8Part"])
+  ✓ instanceCount and truncated report the full list
+  ✓ one script uses the literal (got [{"line":2,"instancePath":"game.ServerScriptService.TODO8Static","className":"Script","text":"for _, inst in ipairs(CS:GetTagged(\"TODO8\")) do","api":"GetTagged"}])
+  ✓ the literal user is TODO8Static
+  ✓ line 2 via GetTagged (got line 2, api GetTagged)
+  ✓ no dynamicHint when a literal user exists
+  [search_tags TODO8Dyn] {"dynamicHint":"No script contains this tag as a string literal. The tag name may come from a Config or data table, an attribute, or a StringValue; search those sources or the code that calls GetTagged with a variable.","instances":["game.Workspace.TODO8.TODO8DynPart"],"truncated":false,"scripts":[],"scriptsSearched":2,"scriptsTruncated":false,"instanceCount":1,"tag":"TODO8Dyn"}
+  ✓ the dynamically used tag still resolves its instances
+  ✓ no script uses the dynamic tag literally
+  ✓ dynamicHint explains the tag may come from Config/data (got No script contains this tag as a string literal. The tag name may come from a Config or data table, an attribute, or a StringValue; search those sources or the code that calls GetTagged with a variable.)
+  [search_tags (all)] {"totalTags":6,"tags":[{"count":1,"tag":"TODO8"},{"count":1,"tag":"TODO8Dyn"},{"count":0,"tag":"TagEditorTagContainer"},{"count":1,"tag":"data-testid=--studio-foundation--stylesheet-wrapper"},{"count":1,"tag":"gui-object-defaults"},{"count":1,"tag":"size-full"}]}
+  ✓ listing counts both tags once (got {"TODO8":1,"TODO8Dyn":1,"TagEditorTagContainer":0,"data-testid=--studio-foundation--stylesheet-wrapper":1,"gui-object-defaults":1,"size-full":1})
+  [search_tags missing] {"dynamicHint":"No script contains this tag as a string literal. The tag name may come from a Config or data table, an attribute, or a StringValue; search those sources or the code that calls GetTagged with a variable.","instances":[],"truncated":false,"scripts":[],"scriptsSearched":2,"scriptsTruncated":false,"instanceCount":0,"tag":"TODO8Missing"}
+  ✓ an unused tag returns empty lists and the hint
+
+✅ TODO #8: tags on get_instance_properties and search_tags PASSED
+Closed managed Studio instance instance:ugh-0m6
+
+========== SUMMARY ==========
+  ✅ PASS  todo-2026-09-15/08-tags.mjs
+
+1/1 passed.
+EXIT=0
