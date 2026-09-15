@@ -11,7 +11,7 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 
 ## P1 — iş akışını kıran
 
-### 1. `capture_screenshot` play modunda (ve bazen edit'te) boş kare döndürüyor
+### 1. `capture_screenshot` play modunda (ve bazen edit'te) boş kare döndürüyor ✅ (commit 3d442e3, test tests/todo-2026-09-15/01-capture-play-blank.mjs + packages/core/src/__tests__/todo-01-capture-markers.test.ts, kanıt tests/todo-2026-09-15/kanit/01-capture-play-blank.md)
 - **Belirti:** `"Studio's CaptureService returned a blank (single-colour) frame and host window capture also failed (no viewport markers were visible in the Studio window capture)"`. Görüntü 1608×661 tamamen siyah. Aynı oturumda edit modunda kamera `Scriptable` + `CFrame` ile birkaç kez düzgün görüntü alındı; play modunda (client-1 peer varken) 4/4 deneme boş.
 - **Yeniden üretme:** `solo_playtest start play` → karakter doğdu, `eval_client_runtime` ile `workspace.CurrentCamera.CFrame` normal, `PlayerGui` dolu → `capture_screenshot` (jpeg 60/70 ve png) → boş. Studio penceresi maksimize ve önde (`ShowWindow(h,3)` + `SetForegroundWindow`, `IsIconic=false`). Aynı anda PowerShell `Graphics.CopyFromScreen` ile pencere yakalandığında viewport tamamen görünür durumdaydı (bkz. `tools/cap.ps1` çözümü aşağıda).
 - **Beklenen:** play modunda client peer'ın viewport'u döner; olmuyorsa neden (CaptureService hangi peer'da çağrıldı, marker'lar neden görünmedi: DPI ölçeği? "HD 720 1280×720" cihaz emülasyonu açıkken viewport ölçeklenip ortalanıyor — marker'lar emüle çerçevenin köşesinde mi, pane'in köşesinde mi?) hata mesajında yazar.
@@ -61,11 +61,11 @@ Dosya adları bu depodaki ağaca göre: `packages/core/src/*.ts` (sunucu), `stud
 - **İstek:** `search_objects`/yeni `get_tags` aracı: bir nesnenin tag'leri + o tag'i `GetTagged` ile arayan scriptler (statik: `GetTagged("<tag>")` literal eşleşme; dinamik ise "tag listesi Config'ten" uyarısı). En azından `get_instance_properties` çıktısına `tags: [...]` alanı.
 - **Aday:** `studio-plugin/src/modules/ScriptSearch.ts`, `handlers/*` (instance properties).
 
-### 9. Studio penceresi küçültülünce her şey siyah; pencere handle'ı oturumdan oturuma değişiyor
+### 9. Studio penceresi küçültülünce her şey siyah; pencere handle'ı oturumdan oturuma değişiyor ✅ capture kısmı (commit 97f4ad4 + kod 3d442e3, test tests/todo-2026-09-15/09-minimized-window-capture.mjs, kanıt kanit/09-minimized-window-capture.md); `get_connected_instances` windowTitle/windowHandle → Ajan B (`listStudioWindows`/`findStudioWindow` host-capture.ts'den dışa aktarıldı)
 - **Belirti:** Kullanıcı Studio'yu küçültmüşse `capture_screenshot` siyah. Her oturumda `Get-Process RobloxStudioBeta | select MainWindowHandle` ile handle bulup `ShowWindow` gerekiyor (bu oturumda 132328; 3 Studio açıkken hangisinin hangi instance olduğu başlıkla eşleniyor).
 - **İstek:** `capture_screenshot` (ya da yeni `focus_window`) küçültülmüşse geri getirip önplana alsın (`host-capture.ts` zaten pencereyi buluyor); `get_connected_instances` çıktısına `windowHandle`/`windowTitle` ekle.
 
-### 10. Play modunda `capture_screenshot` referans instance'ta "client peer" nedeniyle hiç çalışmadı
+### 10. Play modunda `capture_screenshot` referans instance'ta "client peer" nedeniyle hiç çalışmadı ✅ (commit f7ce6d4 + kod 3d442e3, test tests/todo-2026-09-15/10-capture-target-peer.mjs, kanıt kanit/10-capture-target-peer.md)
 - **Belirti:** `instance:v5b-wun` (play modunda: edit + server + client-1) için `capture_screenshot` her seferinde başarısız (önceki oturum: peer belirsizliği). Salt-okunur referans incelemesinde görsel alınamadı; kod okumayla idare edildi.
 - **İstek:** `target` parametresi (`edit|client-1`) ya da play modunda otomatik client-1 seçimi; hata metninde hangi peer'ın denendiği.
 
