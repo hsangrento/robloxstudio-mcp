@@ -79,6 +79,71 @@ EXIT 1
 ✅ TODO#1 capture_screenshot play-mode blank frame PASSED
 ```
 
+## Son kapı (HEAD 00d4e02 + bu commit, 2026-09-15 12:50–13:20)
+
+Birleşik ilk `test:studio:runner` koşusunda `runtime-bridge-lifecycle.mjs` düştü ("Timed out waiting for roles edit, server, client-1"); baseline 3847349 worktree'inde aynı test yeşil → #7 otomatik dedupe regresyonu (aynı `ExecutePlayModeAsync` kodu operation_id'siz ikinci kez gönderilince retained sonuç döndü, play başlamadı). Kural daraltıldı (commit 1ae2e0e): teslim edilmiş sonuç sonraki özdeş çağrıyı dedupe etmez; yalnız pending ya da bekleyeni kopmuş (`waiterEndedAt`) istekler dedupe edilir. Sonra `runtime-bridge-lifecycle.mjs` tek başına ✅.
+
+| Komut | Sonuç |
+|---|---|
+| `npm run typecheck` / `npm test -w packages/core` | yeşil; 41 suite / 704 test |
+| `npm run build:all` | tamam (canlı eklenti dosyası güncellendi) |
+| `npm run test:todo` | jest todo-* 17/17; managed Studio 13/13 (157 s) |
+| `npm run test:studio:runner` | 21/21 |
+| `npm run test:studio:smoke` (önceki HEAD 073418a) | 3/3 |
+
+```
+========== SUMMARY ==========
+  ✅ PASS  todo-2026-09-15/00-saha-regresyon.mjs
+  ✅ PASS  todo-2026-09-15/01-capture-play-blank.mjs
+  ✅ PASS  todo-2026-09-15/02-playtest-restart.mjs
+  ✅ PASS  todo-2026-09-15/03-import-service-root.mjs
+  ✅ PASS  todo-2026-09-15/04-streaming-props.mjs
+  ✅ PASS  todo-2026-09-15/05-execute-luau-truncation.mjs
+  ✅ PASS  todo-2026-09-15/06-runtime-log-merge.mjs
+  ✅ PASS  todo-2026-09-15/07-queue-dedupe.mjs
+  ✅ PASS  todo-2026-09-15/08-tags.mjs
+  ✅ PASS  todo-2026-09-15/09-minimized-window-capture.mjs
+  ✅ PASS  todo-2026-09-15/10-capture-target-peer.mjs
+  ✅ PASS  todo-2026-09-15/11-connected-instances-playtest.mjs
+  ✅ PASS  todo-2026-09-15/13-export-report.mjs
+
+13/13 passed.
+
+========== TODO SUMMARY ==========
+  ✅ PASS  jest packages/core todo-*  (4185 ms)
+  ✅ PASS  managed Studio suite (13 test)  (156698 ms)
+
+2/2 passed.
+TODO EXIT 0
+```
+```
+========== SUMMARY ==========
+  ✅ PASS  path-resolution.mjs
+  ✅ PASS  property-value-conversion.mjs
+  ✅ PASS  luau-payload-transfers.mjs
+  ✅ PASS  capture-broker-transfers.mjs
+  ✅ PASS  large-input-workflow.mjs
+  ✅ PASS  studio-tooling-smoke.mjs
+  ✅ PASS  eval-bridge-error-preservation.mjs
+  ✅ PASS  eval-context-routing.mjs
+  ✅ PASS  runtime-bridge-lifecycle.mjs
+  ✅ PASS  playtest-control-repro.mjs
+  ✅ PASS  play-cycle-event-stream-regression.mjs
+  ✅ PASS  micro-profiler-responsiveness.mjs
+  ✅ PASS  studio-grep-responsiveness.mjs
+  ✅ PASS  studio-plugin-connection-timeout-regression.mjs
+  ✅ PASS  execute-luau-error-preservation.mjs
+  ✅ PASS  proxy-mode-peer-fanout.mjs
+  ✅ PASS  execute-luau-output-capture.mjs
+  ✅ PASS  simulation-state-lifecycle.mjs
+  ✅ PASS  multiplayer-add-player-end-regression.mjs
+  ✅ PASS  multiplayer-test-lifecycle.mjs
+  ✅ PASS  studio-websocket-transport.mjs
+
+21/21 passed.
+RUNNER EXIT 0
+```
+
 ---
 # Madde kanıtları (tests/todo-2026-09-15/kanit/*.md birebir)
 
