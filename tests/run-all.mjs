@@ -68,7 +68,8 @@ const requestedTest = requestedTestIndex === -1 ? undefined : process.argv[reque
 if (requestedTestIndex !== -1 && !requestedTest) {
   throw new Error('--test requires a test filename');
 }
-if (requestedTest && !FULL_TESTS.includes(requestedTest) && !DIAGNOSTIC_TESTS.includes(requestedTest) && !CONFIGURED_TESTS.includes(requestedTest)) {
+const TODO_TEST_PREFIX = 'todo-2026-09-15/';
+if (requestedTest && !FULL_TESTS.includes(requestedTest) && !DIAGNOSTIC_TESTS.includes(requestedTest) && !CONFIGURED_TESTS.includes(requestedTest) && !requestedTest.startsWith(TODO_TEST_PREFIX)) {
   throw new Error(`Unknown Studio test ${JSON.stringify(requestedTest)}`);
 }
 const TESTS = requestedTest ? [requestedTest] : (featureSmoke ? FEATURE_TESTS : FULL_TESTS);
