@@ -1,0 +1,13 @@
+
+> @chrrxs/robloxstudio-mcp-core@3.1.4 test
+> jest todo-16
+
+PASS src/__tests__/todo-16-tool-guides.test.ts
+  TODO #12/#16 tool guide sections
+    √ lists the tool guide resource and serves both new sections (32 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        4.261 s, estimated 13 s
+Ran all test suites matching /todo-16/i.
