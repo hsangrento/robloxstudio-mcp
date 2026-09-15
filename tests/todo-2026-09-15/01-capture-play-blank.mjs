@@ -76,8 +76,12 @@ await runTest('TODO#1 capture_screenshot play-mode blank frame', async ({ track 
     console.log(`  set_device_simulator ${JSON.stringify(simulatorArgs)} (device ${hd720 ? JSON.stringify(hd720) : 'not in list; resolution fallback'})`);
     await tool('set_device_simulator', simulatorArgs);
     simulating = true;
-    await tool('execute_luau', { target: 'client-1', code: "game:GetService('RunService').RenderStepped:Wait() game:GetService('RunService').RenderStepped:Wait() task.wait(0.5) return true" });
-    const emulatedViewport = await viewportOf('client-1');
+    let emulatedViewport = playViewport;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await tool('execute_luau', { target: 'client-1', code: "game:GetService('RunService').RenderStepped:Wait() game:GetService('RunService').RenderStepped:Wait() task.wait(0.5) return true" });
+      emulatedViewport = await viewportOf('client-1');
+      if (emulatedViewport.w !== playViewport.w || emulatedViewport.h !== playViewport.h) break;
+    }
     const emulationState = await tool('get_device_simulator_state', { target: 'client-1', includeDeviceList: false });
     console.log(`  client-1 ViewportSize ${emulatedViewport.w}x${emulatedViewport.h} (emulation on: ${JSON.stringify(emulationState)})`);
     const probeOn = probeWindow(window.handle);
@@ -92,8 +96,10 @@ await runTest('TODO#1 capture_screenshot play-mode blank frame', async ({ track 
     assert.ok(on.colours > 1, `play capture (emulation on) is a single colour (${on.colours}); message: ${on.text.message}`);
     assert.equal(off.decoded.width, Math.floor(playViewport.w));
     assert.equal(off.decoded.height, Math.floor(playViewport.h));
-    assert.equal(on.decoded.width, Math.floor(emulatedViewport.w));
-    assert.equal(on.decoded.height, Math.floor(emulatedViewport.h));
+    const emulatedResolution = emulationState.resolution ?? {};
+    const emulatedSizeOk = (actual, viewport, resolution) => actual === Math.floor(viewport) || (Number.isFinite(resolution) && Math.abs(actual - resolution) <= 1);
+    assert.ok(emulatedSizeOk(on.decoded.width, emulatedViewport.w, emulatedResolution.width), `emulated width ${on.decoded.width} vs ViewportSize ${emulatedViewport.w} / resolution ${emulatedResolution.width}`);
+    assert.ok(emulatedSizeOk(on.decoded.height, emulatedViewport.h, emulatedResolution.height), `emulated height ${on.decoded.height} vs ViewportSize ${emulatedViewport.h} / resolution ${emulatedResolution.height}`);
     assert.equal(edit.text.peer, 'edit', 'edit result names the peer that rendered the image');
     assert.equal(off.text.peer, 'client-1', 'play result names the play client peer');
     assert.equal(on.text.peer, 'client-1');

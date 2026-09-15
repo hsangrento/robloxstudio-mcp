@@ -13,7 +13,7 @@ const skipStudio = process.argv.includes('--no-studio');
 
 async function run(label, command, args, cwd = REPO_ROOT) {
   const startedAt = Date.now();
-  const proc = spawn(command, args, { stdio: 'inherit', cwd, shell: process.platform === 'win32' });
+  const proc = spawn(command, args, { stdio: 'inherit', cwd, shell: process.platform === 'win32' && command === 'npm' });
   const [code] = await once(proc, 'exit');
   return { label, code: code ?? 1, ms: Date.now() - startedAt };
 }
