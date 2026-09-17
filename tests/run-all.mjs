@@ -15,20 +15,17 @@ import { dirname, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { DIST } from './lib/mcp-client.mjs';
 import { openManagedStudioSession } from './lib/managed-studio-session.mjs';
-import { testBasePort } from './lib/test-port.mjs';
+import { acquireSuitePort, testBasePort } from './lib/test-port.mjs';
+import { runSequentialSuite } from './lib/sequential-suite.mjs';
 import {
-  configureStudioDirectoryIsolation,
+  assertStudioDirectoryIsolation,
+  assertStudioTestProfile,
   createIsolatedStudioDirectory,
 } from '../scripts/studio-lifecycle.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WORKTREE_PLUGIN = resolve(__dirname, '..', 'studio-plugin', 'MCPPlugin.rbxmx');
 const forceManagedSession = process.argv.includes('--managed');
-if (forceManagedSession) {
-  delete process.env.MCP_INSTANCE_ID;
-  delete process.env.RSMCP_STUDIO_WORKING_DIRECTORY;
-  delete process.env.RSMCP_STUDIO_DIRECTORY_ISOLATED;
-}
 
 
 const FULL_TESTS = [
@@ -36,6 +33,7 @@ const FULL_TESTS = [
   'property-value-conversion.mjs',
   'luau-payload-transfers.mjs',
   'capture-broker-transfers.mjs',
+  'client-profiler-broker-deadline.mjs',
   'large-input-workflow.mjs',
   'studio-tooling-smoke.mjs',
   'eval-bridge-error-preservation.mjs',
@@ -88,10 +86,10 @@ const TESTS = requestedTest ? [requestedTest] : todoSuite ? TODO_STUDIO_TESTS : 
 // in-flight cleanup and either times out or sees a stale 1-peer state.
 const INTER_TEST_DELAY_MS = 1000;
 
-async function runOne(file) {
-  const proc = spawn('node', [resolve(__dirname, file)], { stdio: 'inherit' });
+async function runOne(file, env) {
+  const proc = spawn('node', [resolve(__dirname, file)], { stdio: 'inherit', env });
   const [code] = await once(proc, 'exit');
-  return { file, code: code ?? 1 };
+  return code ?? 1;
 }
 
 async function runChecked(command, args, env) {
@@ -103,49 +101,67 @@ async function runChecked(command, args, env) {
 }
 
 async function main() {
-  const hasConfiguredPort = process.env.ROBLOX_STUDIO_PORT !== undefined
-    && process.env.ROBLOX_STUDIO_PORT !== '';
-  const suitePort = testBasePort();
-  process.env.ROBLOX_STUDIO_PORT = String(suitePort);
-  console.log(
-    `${featureSmoke ? 'Feature E2E smoke' : 'Full integration suite'} using port ${suitePort}` +
-    (hasConfiguredPort ? ' (from ROBLOX_STUDIO_PORT)' : ' (default plugin port)'),
-  );
-
-  let worker;
-  if (!process.env.MCP_INSTANCE_ID && !process.env.RSMCP_STUDIO_WORKING_DIRECTORY) {
-    await configureStudioDirectoryIsolation({ requireStudioClosed: false });
-    worker = createIsolatedStudioDirectory({ prefix: 'run-all' });
-    process.env.MCP_PLUGINS_DIR = worker.pluginsDirectory;
-    process.env.RSMCP_STUDIO_WORKING_DIRECTORY = worker.workingDirectory;
-    process.env.RSMCP_STUDIO_DIRECTORY_ISOLATED = '1';
-    console.log(`Installing worktree plugin ${WORKTREE_PLUGIN}`);
-    // Never hide a missing worktree build by downloading a released plugin.
-    await runChecked(
-      process.execPath,
-      [DIST, '--install-bundled-plugin', '--plugin-path', WORKTREE_PLUGIN],
-      process.env,
-    );
+  const runtimeEnv = { ...process.env };
+  if (forceManagedSession) {
+    delete runtimeEnv.MCP_INSTANCE_ID;
+    delete runtimeEnv.RSMCP_STUDIO_WORKING_DIRECTORY;
+    delete runtimeEnv.RSMCP_STUDIO_TEST_WORKER_JOB;
+    delete runtimeEnv.RSMCP_STUDIO_DIRECTORY_ISOLATED;
+    delete runtimeEnv.ROBLOXSTUDIO_MCP_MANAGED_INSTANCE_REGISTRY_DIR;
   }
-
+  const existingInstanceId = runtimeEnv.MCP_INSTANCE_ID?.trim();
+  let portLease;
+  let worker;
   let studioSession;
-  const results = [];
+  let results = [];
+  let skipped = TESTS;
   let cleanupFailed = false;
   try {
+    if (!existingInstanceId) {
+      await assertStudioTestProfile();
+      await assertStudioDirectoryIsolation();
+      if (!runtimeEnv.RSMCP_STUDIO_WORKING_DIRECTORY?.trim()) {
+        portLease = await acquireSuitePort({ env: runtimeEnv });
+        worker = await createIsolatedStudioDirectory({ prefix: 'run-all', env: runtimeEnv });
+        Object.assign(runtimeEnv, worker.environment);
+        runtimeEnv.MCP_PLUGINS_DIR = worker.pluginsDirectory;
+        runtimeEnv.RSMCP_STUDIO_WORKING_DIRECTORY = worker.workingDirectory;
+        runtimeEnv.RSMCP_STUDIO_DIRECTORY_ISOLATED = '1';
+        runtimeEnv.ROBLOXSTUDIO_MCP_MANAGED_INSTANCE_REGISTRY_DIR = worker.managedInstanceRegistryDirectory;
+        runtimeEnv.ROBLOX_STUDIO_PORT = String(portLease.port);
+        console.log(`Installing worktree plugin ${WORKTREE_PLUGIN}`);
+        // Never hide a missing worktree build by downloading a released plugin.
+        await runChecked(
+          process.execPath,
+          [DIST, '--install-bundled-plugin', '--plugin-path', WORKTREE_PLUGIN],
+          runtimeEnv,
+        );
+      }
+    }
+    const suitePort = portLease?.port ?? testBasePort(runtimeEnv);
+    console.log(
+      `${featureSmoke ? 'Feature E2E smoke' : 'Full integration suite'} using port ${suitePort}` +
+      (portLease?.autoAssigned ? ' (isolated worker port)' : ' (configured/default plugin port)'),
+    );
+    await portLease?.handoff();
     studioSession = await openManagedStudioSession({
       port: suitePort,
-      existingInstanceId: process.env.MCP_INSTANCE_ID,
+      existingInstanceId,
+      env: runtimeEnv,
     });
-    process.env.MCP_INSTANCE_ID = studioSession.instanceId;
+    const childEnv = { ...studioSession.env, MCP_INSTANCE_ID: studioSession.instanceId };
     console.log(
       studioSession.managed
         ? `Launched managed Studio instance ${studioSession.instanceId}`
         : `Using supplied Studio instance ${studioSession.instanceId}`,
     );
-    for (let i = 0; i < TESTS.length; i++) {
-      if (i > 0) await delay(INTER_TEST_DELAY_MS);
-      const r = await runOne(TESTS[i]);
-      results.push(r);
+    ({ results, skipped } = await runSequentialSuite(TESTS, {
+      run: (file) => runOne(file, childEnv),
+      betweenTests: () => delay(INTER_TEST_DELAY_MS),
+    }));
+    const failure = results.find((result) => result.code !== 0);
+    if (failure) {
+      console.error(`Stopping suite after ${failure.file} failed; skipping ${skipped.length} remaining test(s) to protect shared Studio state.`);
     }
   } finally {
     if (studioSession) {
@@ -158,23 +174,33 @@ async function main() {
       }
     }
     if (worker) {
-      await delay(1000);
       try {
-        worker.cleanup();
+        await worker.cleanup();
       } catch (error) {
         cleanupFailed = true;
         console.error(`Failed to remove isolated Studio worker ${worker.workingDirectory}: ${error.message}`);
+      }
+    }
+    if (portLease) {
+      try {
+        await portLease.release();
+      } catch (error) {
+        cleanupFailed = true;
+        console.error(`Failed to release suite port ${portLease.port}: ${error.message}`);
       }
     }
   }
 
   console.log('\n========== SUMMARY ==========');
   for (const r of results) {
-    console.log(`  ${r.code === 0 ? '✅ PASS' : '❌ FAIL'}  ${r.file}`);
+    console.log(`  ${r.code === 0 ? 'PASS' : 'FAIL'}  ${r.file}${r.error ? `: ${r.error.message ?? r.error}` : ''}`);
+  }
+  for (const file of skipped) {
+    console.log(`  SKIP  ${file} (suite stopped after failure)`);
   }
   const failed = results.filter((r) => r.code !== 0).length;
-  console.log(`\n${results.length - failed}/${results.length} passed.`);
-  process.exitCode = failed === 0 && !cleanupFailed ? 0 : 1;
+  console.log(`\n${results.length - failed}/${TESTS.length} passed; ${failed} failed; ${skipped.length} skipped.`);
+  process.exitCode = failed === 0 && results.length === TESTS.length && !cleanupFailed ? 0 : 1;
 }
 
 await main();

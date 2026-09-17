@@ -10,6 +10,11 @@ export interface Connection {
 	lastHttpOk: boolean;
 	lastMcpOk: boolean;
 	mcpWaitStartTime?: number;
+	transportState?: TransportUpdate["state"];
+	transportAttempt?: number;
+	transportDetail?: string;
+	lastTransportFailure?: string;
+	nextRetryAt?: number;
 	heartbeatConnection?: RBXScriptConnection;
 }
 
@@ -47,6 +52,9 @@ export interface StudioRequestContext {
 	requestId: string;
 	deadlineAt: number;
 	isCancelled: () => boolean;
+	// Trusted dispatch observation, never inferred from arbitrary response fields.
+	// A broker can end its local wait without observing remote completion.
+	executionOutcome?: "unknown" | "not_executed";
 }
 
 export interface StudioRequestEvent {

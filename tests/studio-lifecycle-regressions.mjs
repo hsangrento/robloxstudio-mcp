@@ -10,7 +10,8 @@ import { BASE_PORT, McpClient, DIST, assert } from './lib/mcp-client.mjs';
 import { resolveAuthToken } from '../packages/core/dist/auth.js';
 import {
   closeStudioProcess,
-  configureStudioDirectoryIsolation,
+  assertStudioDirectoryIsolation,
+  assertStudioTestProfile,
   createIsolatedStudioDirectory,
 } from '../scripts/studio-lifecycle.mjs';
 
@@ -102,7 +103,9 @@ function reproPluginXml(marker, invalidUtf8 = false) {
 }
 
 async function launchLocalPlace(client, placeFile, workingDirectory, launchedProcesses) {
-  await configureStudioDirectoryIsolation({ requireStudioClosed: false });
+  assertStudioTestProfile();
+  assertStudioDirectoryIsolation();
+  let dispatchedAt;
   const launch = await client.callTool('manage_instance', {
     action: 'launch',
     source: 'local_file',
@@ -111,7 +114,7 @@ async function launchLocalPlace(client, placeFile, workingDirectory, launchedPro
     require_process_identity: true,
     wait_for_connection: false,
     timeout_ms: 120000,
-  });
+  }, 30_000, { onDispatch: () => { dispatchedAt = Date.now(); } });
   assert(!!launch.launch_id, `identity launch returned launch_id (${JSON.stringify(launch)})`);
   assert(Number.isSafeInteger(launch.pid), `identity launch returned pid (${JSON.stringify(launch)})`);
   assert(
@@ -142,7 +145,7 @@ async function launchLocalPlace(client, placeFile, workingDirectory, launchedPro
       launch_id: launch.launch_id,
     });
     if (status.connected && status.instance_id) {
-      return { ...status, launch_id: launch.launch_id };
+      return { ...status, launch_id: launch.launch_id, dispatchedAt };
     }
     if (status.state === 'failed' || status.state === 'exited') break;
     await delay(250);
@@ -191,12 +194,13 @@ async function assertLogMarker(client, instanceId, marker, expectedCount, expect
 }
 
 async function main() {
+  assertStudioTestProfile();
+  assertStudioDirectoryIsolation();
   if (await isPortOpen(BASE_PORT)) {
     throw new Error(`Port ${BASE_PORT} is already occupied. Stop existing MCP servers before running this E2E.`);
   }
 
-  await configureStudioDirectoryIsolation({ requireStudioClosed: false });
-  const worker = createIsolatedStudioDirectory({ prefix: 'lifecycle-regressions' });
+  const worker = await createIsolatedStudioDirectory({ prefix: 'lifecycle-regressions' });
   const placeFile = path.join(worker.workingDirectory, 'Lifecycle.rbxlx');
   const reproPlugin = path.join(worker.pluginsDirectory, REPRO_PLUGIN_NAME);
   const markerA = `[MCP-EDIT-HISTORY-E2E-A-${Date.now()}]`;
@@ -216,8 +220,10 @@ async function main() {
       args: [DIST, '--auto-install-plugin'],
       env: {
         ...SERVER_ENV,
+        ...worker.environment,
         MCP_PLUGINS_DIR: worker.pluginsDirectory,
         RSMCP_STUDIO_WORKING_DIRECTORY: worker.workingDirectory,
+        ROBLOXSTUDIO_MCP_MANAGED_INSTANCE_REGISTRY_DIR: worker.managedInstanceRegistryDirectory,
       },
       startupTimeoutMs: 60000,
     });
@@ -263,7 +269,8 @@ async function main() {
     // place to verify process identity, rather than place metadata, controls
     // coexistence and routing.
     await closeStudioProcess(launchedProcesses[0]);
-    await configureStudioDirectoryIsolation({ requireStudioClosed: false });
+    assertStudioTestProfile();
+    assertStudioDirectoryIsolation();
     writeFileSync(reproPlugin, reproPluginXml(markerB));
     const stalePeer = (await serverTopology()).peers.find(
       (peer) => peer.peerId === firstPeerId,
@@ -299,21 +306,21 @@ async function main() {
     await waitForPeerActivityAdvance(firstPeerId, stalePeerActivity);
 
     console.log('\n=== same-place relaunch creates a distinct process Instance ===');
-    const relaunchedAt = Date.now();
     const secondLaunch = await launchLocalPlace(
       client,
       placeFile,
       worker.workingDirectory,
       launchedProcesses,
     );
-    const relaunchElapsedMs = Date.now() - relaunchedAt;
+    assert(Number.isSafeInteger(secondLaunch.dispatchedAt), 'relaunch records its admitted RPC dispatch time');
+    const relaunchElapsedMs = Date.now() - secondLaunch.dispatchedAt;
     const secondInstanceId = secondLaunch.instance_id;
     assert(typeof secondInstanceId === 'string' && secondInstanceId.length > 0,
       'second launch reports its Studio process Instance ID');
     assert(secondInstanceId !== firstInstanceId,
       'relaunching the same place creates a distinct process Instance');
     assert(relaunchElapsedMs < 25_000,
-      `same-place process becomes routable without waiting for stale cleanup (${relaunchElapsedMs}ms)`);
+      `same-place process becomes routable without waiting for stale cleanup (${relaunchElapsedMs}ms; admission pacing excluded)`);
 
     const topologyWithBoth = await serverTopology();
     const secondPeers = matchingEditPeers(topologyWithBoth, secondInstanceId);
@@ -416,14 +423,10 @@ async function main() {
       }
     }
     try {
-      await configureStudioDirectoryIsolation({ requireStudioClosed: false });
+      await worker.cleanup();
     } catch (error) {
       cleanupErrors.push(error);
-    }
-    try {
-      worker.cleanup();
-    } catch (error) {
-      cleanupErrors.push(error);
+      console.warn(`Retaining Studio worker after unconfirmed job drain: ${worker.workingDirectory}`);
     }
     if (cleanupErrors.length > 0) {
       if (bodyError) {

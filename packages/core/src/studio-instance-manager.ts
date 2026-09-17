@@ -144,6 +144,7 @@ export interface StudioInstanceManagerOptions {
   confirmedExitGraceMs?: number;
   snapshotCacheMs?: number;
   launchCompletionTimeoutMs?: number;
+  closeTimeoutMs?: number;
 }
 
 export type StudioLifecycleLauncher =
@@ -204,6 +205,46 @@ export type ManagedStudioCloseResult =
   | { status: 'already_closed'; launchId?: string; instanceId?: string }
   | { status: 'not_found'; launchId?: string; instanceId?: string };
 
+class StudioCloseVerificationError extends Error {
+  constructor(message: string, readonly observation: ManagedProcessObservation) {
+    super(message);
+  }
+}
+
+async function beforeCloseDeadline<T>(
+  operation: () => T | Promise<T>,
+  deadline: number,
+  processId: number,
+): Promise<T> {
+  const { promise, reject } = Promise.withResolvers<never>();
+  const timeoutError = () => new StudioCloseVerificationError(
+    `Timed out verifying Studio process ${processId} termination; process state is unknown.`,
+    { status: 'unknown', observedAt: Date.now(), error: 'Close operation deadline exceeded.' },
+  );
+  if (Date.now() >= deadline) throw timeoutError();
+  const timer = setTimeout(() => reject(timeoutError()), deadline - Date.now());
+  try {
+    return await Promise.race([operation(), promise]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function observePosixProcess(processId: number): ManagedProcessObservation {
+  try {
+    process.kill(processId, 0);
+    return { status: 'running', observedAt: Date.now() };
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ESRCH') {
+      return { status: 'not_running', observedAt: Date.now(), reason: 'missing' };
+    }
+    return {
+      status: 'unknown', observedAt: Date.now(),
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 function run(command: string, args: string[], options: Record<string, unknown> = {}): string {
   return execFileSync(command, args, {
     encoding: 'utf8',
@@ -235,9 +276,10 @@ function powershell(script: string): string {
   });
 }
 
-async function powershellAsync(script: string): Promise<string> {
+async function powershellAsync(script: string, timeoutMs = 15000): Promise<string> {
   return runAsync('powershell.exe', ['-NoProfile', '-Command', script], {
     cwd: isWsl() && existsSync('/mnt/c/Windows') ? '/mnt/c/Windows' : process.cwd(),
+    timeout: timeoutMs,
   });
 }
 
@@ -387,11 +429,19 @@ export function quoteWindowsCommandLineArg(value: string): string {
   return `${quoted}${'\\'.repeat(backslashes * 2)}"`;
 }
 
+export function parseStudioTestWorkerJobName(name: string | undefined): string | undefined {
+  if (name !== undefined && !/^Local\\RsmcpStudioWorker-[a-f0-9]{32}$/u.test(name)) {
+    throw new Error('Invalid Studio test worker job name.');
+  }
+  return name;
+}
+
 export function buildWindowsStudioStartScript(
   exe: string,
   args: string[],
   processEnvironment?: StudioProcessEnvironmentPatch,
   studioWorkingDirectory?: string,
+  testWorkerJobName: string | undefined = process.env.RSMCP_STUDIO_TEST_WORKER_JOB,
 ): string {
   const workingDirectory = parseStudioWorkingDirectory(studioWorkingDirectory);
   return buildWindowsStudioStartScriptFromConvertedExe(
@@ -399,6 +449,7 @@ export function buildWindowsStudioStartScript(
     args,
     processEnvironment,
     workingDirectory ? toStudioLaunchArg(workingDirectory) : undefined,
+    testWorkerJobName,
   );
 }
 
@@ -407,8 +458,10 @@ function buildWindowsStudioStartScriptFromConvertedExe(
   args: string[],
   processEnvironment?: StudioProcessEnvironmentPatch,
   windowsWorkingDirectory?: string,
+  testWorkerJobName: string | undefined = process.env.RSMCP_STUDIO_TEST_WORKER_JOB,
 ): string {
   const environmentPatch = parseStudioProcessEnvironmentPatch(processEnvironment);
+  parseStudioTestWorkerJobName(testWorkerJobName);
   const commandLine = [windowsExe, ...args].map(quoteWindowsCommandLineArg).join(' ');
   return [
     "$ErrorActionPreference = 'Stop'",
@@ -521,6 +574,15 @@ public sealed class McpSuspendedStudio : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr CreateJobObjectW(IntPtr jobAttributes, string name);
 
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr OpenJobObjectW(uint access, bool inheritHandle, string name);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetHandleInformation(IntPtr handle, out uint flags);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool QueryInformationJobObject(IntPtr job, int informationClass, IntPtr information, uint informationLength, out uint returned);
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetInformationJobObject(
         IntPtr job,
@@ -608,20 +670,60 @@ public sealed class McpSuspendedStudio : IDisposable
             throw new InvalidOperationException("Unexpected Studio process wait result: " + wait);
     }
 
-    public static McpSuspendedStudio Start(string application, string commandLine, string currentDirectory)
+    private static Win32Exception TestWorkerError(string operation)
+    {
+        int error = Marshal.GetLastWin32Error();
+        return new Win32Exception(error, operation + " (Win32 " + error + "): " + new Win32Exception(error).Message);
+    }
+
+    private static IntPtr OpenTestWorkerJob(string name)
+    {
+        if (name == null) return IntPtr.Zero;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"\\ALocal\\\\RsmcpStudioWorker-[a-f0-9]{32}\\z"))
+            throw new ArgumentException("Invalid Studio test worker job name");
+        IntPtr handle = OpenJobObjectW(5, false, name);
+        if (handle == IntPtr.Zero)
+            throw TestWorkerError("Open test worker job failed");
+        try
+        {
+            uint flags;
+            if (!GetHandleInformation(handle, out flags))
+                throw TestWorkerError("Get test worker job handle flags failed");
+            if ((flags & 1) != 0)
+                throw new InvalidOperationException("Test worker job handle must not be inherited");
+            int length = Marshal.SizeOf(typeof(ExtendedLimitInformation));
+            IntPtr buffer = Marshal.AllocHGlobal(length);
+            try
+            {
+                uint returned;
+                if (!QueryInformationJobObject(handle, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION, buffer, (uint)length, out returned))
+                    throw TestWorkerError("Query test worker job limits failed");
+                var information = (ExtendedLimitInformation)Marshal.PtrToStructure(buffer, typeof(ExtendedLimitInformation));
+                if (returned != length || information.BasicLimitInformation.LimitFlags != JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)
+                    throw new InvalidOperationException("Test worker job must retain kill-on-close without breakaway");
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+            return handle;
+        }
+        catch { CloseHandle(handle); throw; }
+    }
+
+    public static McpSuspendedStudio Start(string application, string commandLine, string currentDirectory, string testWorkerJobName)
     {
         if (String.IsNullOrEmpty(currentDirectory))
             currentDirectory = null;
         IntPtr jobHandle = CreateJobObjectW(IntPtr.Zero, null);
         if (jobHandle == IntPtr.Zero)
             throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateJobObjectW failed");
+        IntPtr workerJob = IntPtr.Zero;
         try
         {
             ConfigureKillOnClose(jobHandle, true);
+            workerJob = OpenTestWorkerJob(testWorkerJobName);
             var startup = new StartupInfo();
             startup.cb = Marshal.SizeOf(startup);
             ProcessInformation created;
-            uint flags = CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB;
+            uint flags = CREATE_SUSPENDED | (workerJob == IntPtr.Zero ? CREATE_BREAKAWAY_FROM_JOB : 0);
             bool started = CreateProcessW(application, new StringBuilder(commandLine), IntPtr.Zero, IntPtr.Zero, false, flags, IntPtr.Zero, currentDirectory, ref startup, out created);
             if (!started && Marshal.GetLastWin32Error() == 5)
                 started = CreateProcessW(application, new StringBuilder(commandLine), IntPtr.Zero, IntPtr.Zero, false, CREATE_SUSPENDED, IntPtr.Zero, currentDirectory, ref startup, out created);
@@ -629,6 +731,10 @@ public sealed class McpSuspendedStudio : IDisposable
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessW failed");
             try
             {
+                // Worker lifetime encloses the private launch-authorization job.
+                // COMPLETE may release authorization, never test-worker ownership.
+                if (workerJob != IntPtr.Zero && !AssignProcessToJobObject(workerJob, created.hProcess))
+                    throw TestWorkerError("Assign Studio to test worker job failed");
                 if (!AssignProcessToJobObject(jobHandle, created.hProcess))
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "AssignProcessToJobObject failed");
                 return new McpSuspendedStudio(created, jobHandle);
@@ -651,6 +757,10 @@ public sealed class McpSuspendedStudio : IDisposable
         {
             CloseHandle(jobHandle);
             throw;
+        }
+        finally
+        {
+            if (workerJob != IntPtr.Zero) CloseHandle(workerJob);
         }
     }
 
@@ -701,7 +811,7 @@ public sealed class McpSuspendedStudio : IDisposable
     }
 }
 '@`,
-    `$launch = [McpSuspendedStudio]::Start(${powershellStringLiteral(windowsExe)}, ${powershellStringLiteral(commandLine)}, ${windowsWorkingDirectory === undefined ? '$null' : powershellStringLiteral(windowsWorkingDirectory)})`,
+    `$launch = [McpSuspendedStudio]::Start(${powershellStringLiteral(windowsExe)}, ${powershellStringLiteral(commandLine)}, ${windowsWorkingDirectory === undefined ? '$null' : powershellStringLiteral(windowsWorkingDirectory)}, ${testWorkerJobName === undefined ? '$null' : powershellStringLiteral(testWorkerJobName)})`,
     'try {',
     '[Console]::Out.WriteLine((ConvertTo-Json @{ pid = $launch.ProcessId; started = [string]$launch.StartedAtFileTime } -Compress)); [Console]::Out.Flush()',
     '$accepted = $false',
@@ -740,8 +850,8 @@ export function buildWindowsStudioStopScript(processId: number, startedAt: strin
   ].join('; ');
 }
 
-async function stopWindowsStudio(processId: number, startedAt: string): Promise<void> {
-  await powershellAsync(buildWindowsStudioStopScript(processId, startedAt));
+async function stopWindowsStudio(processId: number, startedAt: string, timeoutMs = 15000): Promise<void> {
+  await powershellAsync(buildWindowsStudioStopScript(processId, startedAt), timeoutMs);
 }
 
 async function spawnWindowsStudio(
@@ -754,11 +864,13 @@ async function spawnWindowsStudio(
   const windowsWorkingDirectory = studioWorkingDirectory
     ? await toStudioLaunchArgAsync(studioWorkingDirectory)
     : undefined;
+  const testWorkerJobName = process.env.RSMCP_STUDIO_TEST_WORKER_JOB;
   const script = buildWindowsStudioStartScriptFromConvertedExe(
     windowsExe,
     args,
     processEnvironment,
     windowsWorkingDirectory,
+    testWorkerJobName,
   );
   const launcher = spawn("powershell.exe", ["-NoProfile", "-Command", script], {
     cwd:
@@ -1123,6 +1235,39 @@ function prepareStudioLaunchOptions(options: StudioLaunchOptions): StudioLaunchO
   };
 }
 
+function resolveStudioExeFromVersions(root: string): string {
+  if (!existsSync(root)) {
+    throw new Error(`Roblox Studio Versions folder not found: ${root}. Set ROBLOX_STUDIO_EXE.`);
+  }
+
+  const candidates = readdirSync(root)
+    .filter((name) => name.startsWith('version-'))
+    .map((name) => path.join(root, name, 'RobloxStudioBeta.exe'))
+    .filter((candidate) => existsSync(candidate))
+    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
+
+  if (candidates.length === 0) {
+    throw new Error(`RobloxStudioBeta.exe not found under ${root}. Set ROBLOX_STUDIO_EXE.`);
+  }
+
+  // Reject the newest installation rather than falling back: launching an older
+  // version can start the same interrupted update again.
+  const exe = candidates[0];
+  const installationDir = path.dirname(exe);
+  const hasIncompleteDownload = readdirSync(installationDir).some((name) => /\.crdownload$/i.test(name));
+  const settings = statSync(path.join(installationDir, 'AppSettings.xml'), { throwIfNoEntry: false });
+  if (hasIncompleteDownload || !settings?.isFile() || settings.size === 0) {
+    const reason = hasIncompleteDownload
+      ? 'an unfinished .crdownload download is present'
+      : 'AppSettings.xml is missing, empty, or not a regular file';
+    throw new Error(
+      `Roblox Studio installation/update is incomplete at ${installationDir}: ${reason}. ` +
+      'Complete the installation/update or reinstall Roblox Studio under the owning Windows account before launching.',
+    );
+  }
+  return exe;
+}
+
 export function resolveStudioExe(): string {
   if (process.env.ROBLOX_STUDIO_EXE) return process.env.ROBLOX_STUDIO_EXE;
 
@@ -1139,21 +1284,7 @@ export function resolveStudioExe(): string {
     ? path.join(toWslPath(localAppData), 'Roblox', 'Versions')
     : path.join(os.homedir(), 'AppData', 'Local', 'Roblox', 'Versions');
 
-  if (!existsSync(root)) {
-    throw new Error(`Roblox Studio Versions folder not found: ${root}. Set ROBLOX_STUDIO_EXE.`);
-  }
-
-  const candidates = readdirSync(root)
-    .filter((name) => name.startsWith('version-'))
-    .map((name) => path.join(root, name, 'RobloxStudioBeta.exe'))
-    .filter((candidate) => existsSync(candidate))
-    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
-
-  if (candidates.length === 0) {
-    throw new Error(`RobloxStudioBeta.exe not found under ${root}. Set ROBLOX_STUDIO_EXE.`);
-  }
-
-  return candidates[0];
+  return resolveStudioExeFromVersions(root);
 }
 
 async function resolveStudioExeAsync(): Promise<string> {
@@ -1169,18 +1300,7 @@ async function resolveStudioExeAsync(): Promise<string> {
   const root = localAppData
     ? path.join(await toWslPathAsync(localAppData), 'Roblox', 'Versions')
     : path.join(os.homedir(), 'AppData', 'Local', 'Roblox', 'Versions');
-  if (!existsSync(root)) {
-    throw new Error(`Roblox Studio Versions folder not found: ${root}. Set ROBLOX_STUDIO_EXE.`);
-  }
-  const candidates = readdirSync(root)
-    .filter((name) => name.startsWith('version-'))
-    .map((name) => path.join(root, name, 'RobloxStudioBeta.exe'))
-    .filter((candidate) => existsSync(candidate))
-    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
-  if (candidates.length === 0) {
-    throw new Error(`RobloxStudioBeta.exe not found under ${root}. Set ROBLOX_STUDIO_EXE.`);
-  }
-  return candidates[0];
+  return resolveStudioExeFromVersions(root);
 }
 
 const WINDOWS_STUDIO_PROCESS_QUERY = [
@@ -1237,13 +1357,13 @@ export function listStudioProcesses(): StudioProcessInfo[] {
   }
 }
 
-export async function observeStudioProcesses(): Promise<StudioProcessSnapshot> {
+export async function observeStudioProcesses(timeoutMs = 15000): Promise<StudioProcessSnapshot> {
   const observedAt = Date.now();
   try {
     if (process.platform === 'darwin') {
       let out = '';
       try {
-        out = await runAsync('pgrep', ['-fl', 'RobloxStudio']);
+        out = await runAsync('pgrep', ['-fl', 'RobloxStudio'], { timeout: timeoutMs });
       } catch (error) {
         const code = (error as { code?: unknown }).code;
         if (Number(code) === 1) return { status: 'ok', observedAt, processes: [] };
@@ -1264,7 +1384,7 @@ export async function observeStudioProcesses(): Promise<StudioProcessSnapshot> {
       return { status: 'ok', observedAt, processes: [] };
     }
 
-    const out = await powershellAsync(WINDOWS_STUDIO_PROCESS_QUERY);
+    const out = await powershellAsync(WINDOWS_STUDIO_PROCESS_QUERY, timeoutMs);
     return { status: 'ok', observedAt, processes: parseWindowsStudioProcesses(out) };
   } catch (error) {
     return {
@@ -1376,6 +1496,7 @@ export class StudioInstanceManager {
   private readonly confirmedExitGraceMs: number;
   private readonly snapshotCacheMs: number;
   private readonly launchCompletionTimeoutMs: number;
+  private readonly closeTimeoutMs: number;
   private coordinatorTimer?: ReturnType<typeof setInterval>;
   private coordinatorRefresh?: Promise<void>;
   private cachedSnapshot?: StudioProcessSnapshot;
@@ -1391,6 +1512,7 @@ export class StudioInstanceManager {
     this.confirmedExitGraceMs = options.confirmedExitGraceMs ?? 5000;
     this.snapshotCacheMs = options.snapshotCacheMs ?? 0;
     this.launchCompletionTimeoutMs = options.launchCompletionTimeoutMs ?? LAUNCH_COMPLETION_TIMEOUT_MS;
+    this.closeTimeoutMs = options.closeTimeoutMs ?? 10000;
   }
 
   getLifecycleCapabilities(): StudioLifecycleCapabilities {
@@ -1919,6 +2041,7 @@ export class StudioInstanceManager {
         instanceId: record.instanceId,
       };
     }
+    const deadline = Date.now() + this.closeTimeoutMs;
     const processId = record.nativeProcessId ?? record.spawnPid;
     if (!processId) {
       throw new Error(
@@ -1928,65 +2051,73 @@ export class StudioInstanceManager {
     const control = record.recordId
       ? this.launchControls.get(record.recordId)
       : undefined;
-    if (record.processAuthorizationState !== "released" && control) {
-      await control.abort();
-      const closedAt = Date.now();
-      record.closedAt = closedAt;
-      record.exitedAt = closedAt;
-      if (record.state !== "failed") record.state = "exited";
-      record.processObservationStatus = "not_running";
-      record.lastProcessObservationAt = closedAt;
-      record.lastSuccessfulProcessObservationAt = closedAt;
-      record.lastProcessObservationError = undefined;
-      this.cleanupManagedRecord(record);
-      this.markClosedInMemory(record);
-      await this.persist(record);
-      return {
-        status: "closed",
-        launchId: record.recordId,
-        instanceId: record.instanceId,
-      };
-    }
 
-    const snapshot = await this.getProcessSnapshot(true);
-    const observation = this.observeRecord(record, snapshot);
-    if (observation.status === "unknown") {
-      await this.applyProcessObservation(record, observation);
-      throw new Error(
-        `Cannot verify the managed Studio process because process observation failed: ${observation.error}`,
-      );
-    }
-    if (observation.status === "not_running") {
-      await this.markProcessExited(
-        record,
-        undefined,
-        observation.reason === "identity_mismatch"
-          ? "Studio process identity changed; the retained PID was not reused."
-          : record.failureReason,
-      );
-      await this.registry.logEvent({
-        event: "registry_close_already_stopped",
-        recordId: record.recordId,
-        instanceId: record.instanceId,
-        source: record.source,
-        reason:
-          observation.reason === "identity_mismatch"
-            ? "identity_mismatch"
-            : "pid_not_running",
-        action: "marked_closed_and_cleaned_baseplate",
-      });
-      return {
-        status: "already_closed",
-        launchId: record.recordId,
-        instanceId: record.instanceId,
-      };
+    const abort = record.processAuthorizationState !== 'released' && control
+      ? () => control.abort()
+      : undefined;
+    // Retained handles already identify the exact owned child. An enumeration
+    // outage must not prevent aborting it, nor swallow a failed abort.
+    if (!abort) {
+      let snapshot: StudioProcessSnapshot;
+      try {
+        snapshot = await beforeCloseDeadline(
+          () => this.readProcessSnapshot(deadline - Date.now()), deadline, processId,
+        );
+      } catch (error) {
+        if (error instanceof StudioCloseVerificationError) {
+          await this.applyProcessObservation(record, error.observation);
+        }
+        throw error;
+      }
+      const observation = this.observeRecord(record, snapshot);
+      if (observation.status === 'unknown') {
+        await this.applyProcessObservation(record, observation);
+        throw new Error(
+          `Cannot verify the managed Studio process because process observation failed: ${observation.error}`,
+        );
+      }
+      if (observation.status === 'not_running') {
+        await this.markProcessExited(
+          record,
+          undefined,
+          observation.reason === 'identity_mismatch'
+            ? 'Studio process identity changed; the retained PID was not reused.'
+            : record.failureReason,
+        );
+        await this.registry.logEvent({
+          event: 'registry_close_already_stopped',
+          recordId: record.recordId,
+          instanceId: record.instanceId,
+          source: record.source,
+          reason: observation.reason === 'identity_mismatch' ? 'identity_mismatch' : 'pid_not_running',
+          action: 'marked_closed_and_cleaned_baseplate',
+        });
+        return {
+          status: 'already_closed',
+          launchId: record.recordId,
+          instanceId: record.instanceId,
+        };
+      }
     }
 
     try {
-      await this.closeProcess(processId, record.nativeProcessStartedAt);
+      await this.closeProcess(
+        processId,
+        record.nativeProcessStartedAt,
+        abort,
+        deadline,
+      );
     } catch (error) {
-      const retry = await this.getProcessSnapshot(true);
+      if (error instanceof StudioCloseVerificationError) {
+        await this.applyProcessObservation(record, error.observation);
+        throw error;
+      }
+      if (abort) throw error;
+      const retry = await beforeCloseDeadline(
+        () => this.readProcessSnapshot(deadline - Date.now()), deadline, processId,
+      );
       const retryObservation = this.observeRecord(record, retry);
+      await this.applyProcessObservation(record, retryObservation);
       if (
         retryObservation.status === "running" ||
         retryObservation.status === "unknown"
@@ -2027,7 +2158,10 @@ export class StudioInstanceManager {
   }
 
   async closeConnectedInstance(instance: ConnectedStudioInstance): Promise<void> {
-    const snapshot = await this.getProcessSnapshot(true);
+    const deadline = Date.now() + this.closeTimeoutMs;
+    const snapshot = await beforeCloseDeadline(
+      () => this.readProcessSnapshot(deadline - Date.now()), deadline, 0,
+    );
     if (snapshot.status === 'error') {
       throw new Error(`Could not enumerate Studio processes: ${snapshot.error}`);
     }
@@ -2035,32 +2169,89 @@ export class StudioInstanceManager {
     if (!process) {
       throw new Error(`Could not find a Studio process for connected instance "${instance.instanceId}".`);
     }
-    await this.closeProcess(process.Id, process.StartTimeUtcFileTime);
+    await this.closeProcess(process.Id, process.StartTimeUtcFileTime, undefined, deadline);
   }
 
   private async closeProcess(
     processId: number,
     startedAt?: string,
+    stop?: () => unknown | Promise<unknown>,
+    deadline = Date.now() + this.closeTimeoutMs,
   ): Promise<void> {
-    if (this.processAdapter.stopProcess) {
-      await this.processAdapter.stopProcess(processId, startedAt);
-      return;
-    }
+    this.cachedSnapshot = undefined;
+    await beforeCloseDeadline(async () => {
+      if (stop) {
+        await stop();
+      } else if (this.processAdapter.stopProcess) {
+        await this.processAdapter.stopProcess(processId, startedAt);
+      } else if (process.platform === 'win32' || isWsl()) {
+        if (startedAt === undefined) {
+          throw new Error('Cannot stop a Windows Studio process without its creation-time identity.');
+        }
+        await stopWindowsStudio(processId, startedAt, Math.max(1, deadline - Date.now()));
+      } else {
+        try {
+          process.kill(processId, 'SIGTERM');
+        } catch (error) {
+          if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') throw error;
+        }
+      }
+    }, deadline, processId);
 
-    if (process.platform === "win32" || isWsl()) {
-      if (startedAt === undefined) {
-        throw new Error(
-          "Cannot stop a Windows Studio process without its creation-time identity.",
+    // Sending a signal (or completing an adapter's stop request) is not proof of
+    // exit. Never use plugin connectivity, cached, or pre-stop observations here.
+    while (true) {
+      const observation = await beforeCloseDeadline(
+        () => this.observeClosingProcess(processId, startedAt, deadline), deadline, processId,
+      );
+      if (observation.status === 'not_running') return;
+      if (observation.status === 'unknown') {
+        throw new StudioCloseVerificationError(
+          `Could not verify Studio process ${processId} termination: ${observation.error}`,
+          observation,
         );
       }
-      await stopWindowsStudio(processId, startedAt);
-    } else {
-      try {
-        process.kill(processId, "SIGTERM");
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        throw new StudioCloseVerificationError(
+          `Timed out closing Studio process ${processId}: the process is still running. Close can be retried.`,
+          observation,
+        );
+      }
+      await delay(Math.min(100, remaining));
+      if (Date.now() >= deadline) {
+        throw new StudioCloseVerificationError(
+          `Timed out closing Studio process ${processId}: the process is still running. Close can be retried.`,
+          observation,
+        );
       }
     }
+  }
+
+  private async observeClosingProcess(
+    processId: number,
+    startedAt: string | undefined,
+    deadline: number,
+  ): Promise<ManagedProcessObservation> {
+    // macOS enumeration is name-filtered. Check the actual PID so disappearance
+    // from pgrep output cannot masquerade as process termination.
+    if (process.platform === 'darwin' &&
+        !this.processAdapter.observeStudioProcesses && !this.processAdapter.listStudioProcesses) {
+      return observePosixProcess(processId);
+    }
+    const snapshot = await this.readProcessSnapshot(Math.max(1, deadline - Date.now()));
+    if (snapshot.status === 'error') {
+      return { status: 'unknown', observedAt: snapshot.observedAt, error: snapshot.error };
+    }
+    const target = snapshot.processes.find((candidate) => candidate.Id === processId);
+    if (!target) return { status: 'not_running', observedAt: snapshot.observedAt, reason: 'missing' };
+    if (startedAt !== undefined && target.StartTimeUtcFileTime !== startedAt) {
+      if (target.StartTimeUtcFileTime === undefined) {
+        return { status: 'unknown', observedAt: snapshot.observedAt, error: 'Process creation-time identity is unavailable.' };
+      }
+      return { status: 'not_running', observedAt: snapshot.observedAt, reason: 'identity_mismatch' };
+    }
+    return { status: 'running', observedAt: snapshot.observedAt };
   }
 
   private findProcessForConnectedInstance(
@@ -2099,24 +2290,7 @@ export class StudioInstanceManager {
     if (this.snapshotInFlight) return this.snapshotInFlight;
     this.snapshotInFlight = (async () => {
       try {
-        let snapshot: StudioProcessSnapshot;
-        if (this.processAdapter.observeStudioProcesses) {
-          snapshot = await this.processAdapter.observeStudioProcesses();
-        } else if (this.processAdapter.listStudioProcesses) {
-          const observedAt = Date.now();
-          const processes = await this.processAdapter.listStudioProcesses();
-          snapshot = { status: 'ok', observedAt, processes };
-        } else {
-          snapshot = await observeStudioProcesses();
-        }
-        this.cachedSnapshot = snapshot;
-        return snapshot;
-      } catch (error) {
-        const snapshot: StudioProcessSnapshot = {
-          status: 'error',
-          observedAt: Date.now(),
-          error: error instanceof Error ? error.message : String(error),
-        };
+        const snapshot = await this.readProcessSnapshot();
         this.cachedSnapshot = snapshot;
         return snapshot;
       } finally {
@@ -2124,6 +2298,26 @@ export class StudioInstanceManager {
       }
     })();
     return this.snapshotInFlight;
+  }
+
+  private async readProcessSnapshot(timeoutMs = 15000): Promise<StudioProcessSnapshot> {
+    try {
+      if (this.processAdapter.observeStudioProcesses) {
+        return await this.processAdapter.observeStudioProcesses();
+      }
+      if (this.processAdapter.listStudioProcesses) {
+        const observedAt = Date.now();
+        const processes = await this.processAdapter.listStudioProcesses();
+        return { status: 'ok', observedAt, processes };
+      }
+      return await observeStudioProcesses(Math.max(1, timeoutMs));
+    } catch (error) {
+      return {
+        status: 'error',
+        observedAt: Date.now(),
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   private async getCurrentBootId(): Promise<string> {
@@ -2210,7 +2404,19 @@ export class StudioInstanceManager {
     const processId = record.nativeProcessId ?? record.spawnPid;
     if (!processId) return { status: 'running', observedAt: snapshot.observedAt };
     const studioProcess = snapshot.processes.find((candidate) => candidate.Id === processId);
-    if (!studioProcess) return { status: 'not_running', observedAt: snapshot.observedAt, reason: 'missing' };
+    if (!studioProcess) {
+      if (process.platform === 'darwin' &&
+          !this.processAdapter.observeStudioProcesses && !this.processAdapter.listStudioProcesses) {
+        const observation = observePosixProcess(processId);
+        return observation.status === 'running'
+          ? { status: 'unknown', observedAt: observation.observedAt, error: `Studio PID ${processId} is still alive but missing from process enumeration.` }
+          : observation;
+      }
+      return { status: 'not_running', observedAt: snapshot.observedAt, reason: 'missing' };
+    }
+    if (record.nativeProcessStartedAt !== undefined && studioProcess.StartTimeUtcFileTime === undefined) {
+      return { status: 'unknown', observedAt: snapshot.observedAt, error: 'Process creation-time identity is unavailable.' };
+    }
     return this.verifyProcessForRecord(record, studioProcess)
       ? { status: 'running', observedAt: snapshot.observedAt }
       : { status: 'not_running', observedAt: snapshot.observedAt, reason: 'identity_mismatch' };

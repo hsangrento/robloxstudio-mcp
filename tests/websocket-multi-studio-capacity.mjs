@@ -7,7 +7,8 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import {
   closeStudioProcess,
-  configureStudioDirectoryIsolation,
+  assertStudioDirectoryIsolation,
+  assertStudioTestProfile,
   createIsolatedStudioDirectory,
 } from '../scripts/studio-lifecycle.mjs';
 import {
@@ -51,10 +52,12 @@ function uniquePeers(peers) {
 function workerEnvironment(worker, port, workerIndex, { requirePrimary }) {
   const env = {
     ...process.env,
+    ...worker.environment,
     MCP_PLUGINS_DIR: worker.pluginsDirectory,
     ROBLOX_STUDIO_PORT: String(port),
     RSMCP_AUTO_ASSIGNED_PORT: '0',
     RSMCP_STUDIO_WORKING_DIRECTORY: worker.workingDirectory,
+    ROBLOXSTUDIO_MCP_MANAGED_INSTANCE_REGISTRY_DIR: worker.managedInstanceRegistryDirectory,
   };
   env.ROBLOX_STUDIO_REQUIRE_PRIMARY = requirePrimary ? '1' : '0';
 
@@ -126,6 +129,7 @@ function assertExactLaunch(launch, worker, workerIndex) {
 }
 
 async function launchWorker(control, worker, workerIndex, launches) {
+  launchAttempts.add(workerIndex);
   const launch = await control.callTool('manage_instance', {
     action: 'launch',
     source: 'baseplate',
@@ -302,7 +306,7 @@ async function stopPlaytest(control, instanceIdValue) {
   throw new Error(`solo_playtest did not stop ${instanceIdValue}: ${JSON.stringify(lastResult)}`);
 }
 
-async function closeWorker(control, launch) {
+async function closeWorker(control, launch, workerIndex) {
   if (!launch) return;
   let managedError;
   if (control && launch.launch_id) {
@@ -388,11 +392,13 @@ async function assertLogReadsThroughBothRoutes(controls, instanceIds, expectedRo
   }
 }
 
-await configureStudioDirectoryIsolation({ requireStudioClosed: false });
+assertStudioTestProfile();
+assertStudioDirectoryIsolation();
 
 const workers = [];
 const controls = [];
 const launches = [];
+const launchAttempts = new Set();
 const playtestInstanceIds = new Set();
 let portLease;
 let primaryError;
@@ -400,7 +406,7 @@ let primaryError;
 try {
   portLease = await acquireSuitePort({ env: {} });
   for (let index = 0; index < STUDIO_COUNT; index += 1) {
-    workers.push(createIsolatedStudioDirectory({ prefix: `sse-capacity-${index + 1}` }));
+    workers.push(await createIsolatedStudioDirectory({ prefix: `sse-capacity-${index + 1}` }));
   }
 
   await settleOrThrow(
@@ -415,7 +421,8 @@ try {
     'Starting proxy MCP controls',
   );
 
-  await configureStudioDirectoryIsolation({ requireStudioClosed: false });
+  assertStudioTestProfile();
+  assertStudioDirectoryIsolation();
   const launched = await settleOrThrow(
     controls.map((control, index) => launchWorker(control, workers[index], index, launches)),
     'Launching four managed Studio processes concurrently',
@@ -472,8 +479,12 @@ try {
   const playtestStops = await Promise.allSettled([...playtestInstanceIds].map((id, index) =>
     stopPlaytest(controls[index] ?? controls[0], id)));
 
-  const studioCloses = await Promise.allSettled(launches.map((launch, index) =>
-    closeWorker(controls[index], launch)));
+  const studioCloses = await Promise.allSettled(workers.map(async (worker, index) => {
+    if (launchAttempts.has(index) && !launches[index]) {
+      throw new Error(`Studio ${index + 1} launch outcome is unknown; retaining its worker and managed registry.`);
+    }
+    return closeWorker(controls[index], launches[index], index);
+  }));
   for (const [index, result] of studioCloses.entries()) {
     if (result.status === 'rejected') {
       cleanupFailures.push(asError(result.reason));
@@ -495,11 +506,6 @@ try {
     .filter((result) => result.status === 'rejected')
     .map((result) => asError(result.reason)));
 
-  try {
-    await configureStudioDirectoryIsolation({ requireStudioClosed: false });
-  } catch (error) {
-    cleanupFailures.push(asError(error));
-  }
 
   if (portLease) {
     try {
@@ -509,10 +515,9 @@ try {
     }
   }
 
-  await delay(1_000);
   for (const worker of workers) {
     try {
-      worker.cleanup();
+      await worker.cleanup();
     } catch (error) {
       cleanupFailures.push(asError(error));
     }

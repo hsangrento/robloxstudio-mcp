@@ -11,6 +11,7 @@ import { RobloxCookieClient } from '../roblox-cookie-client.js';
 import {
   observeStudioProcesses,
   parseStudioProcessEnvironmentPatch,
+  parseStudioTestWorkerJobName,
   parseStudioWorkingDirectory,
   StudioInstanceManager,
   type ManagedStudioInstance,
@@ -20,6 +21,7 @@ import {
 import {
   decodeImagePathToRgba,
   decodePngBase64ToRgba,
+  isUniformPng,
 } from '../image-decode.js';
 import { DOC_CATEGORIES, getRobloxDoc, isDocCategory } from '../roblox-docs.js';
 import { findBuiltInStudioSkill, loadBuiltInStudioSkills } from '../studio-skills.js';
@@ -1068,6 +1070,7 @@ export class RobloxStudioTools {
   private studioWindowSnapshot: Promise<StudioProcessSnapshot> | undefined;
   private studioWindowSnapshotAt = 0;
   private lastPlaytestMode = new Map<string, 'play' | 'run'>();
+  private viewportCaptureQueues = new Map<string, Promise<void>>();
 
   constructor(bridge: BridgeService) {
     this.client = new StudioHttpClient(bridge);
@@ -3367,6 +3370,7 @@ export class RobloxStudioTools {
         });
       }
       return this._textResult({
+        test_worker_job_name: parseStudioTestWorkerJobName(process.env.RSMCP_STUDIO_TEST_WORKER_JOB),
         managed: (await this.instanceManager.list())
           .filter((record) => record.closedAt === undefined)
           .map((record) => this._managedStatus(record)),
@@ -3457,9 +3461,9 @@ export class RobloxStudioTools {
         record = active[0];
       }
 
-      if (record.instanceId) await this.bridge.unregisterInstanceIdEverywhere(record.instanceId);
       const closeResult = await this.instanceManager.close(record);
       if (record.instanceId) {
+        await this.bridge.unregisterInstanceIdEverywhere(record.instanceId);
         await sleep(500);
         await this.bridge.unregisterInstanceIdEverywhere(record.instanceId);
       }
@@ -5392,7 +5396,28 @@ export class RobloxStudioTools {
     return { content: [{ type: 'text', text: JSON.stringify(response) }] };
   }
 
+  // Even native capture must wait while another call has fitted the simulator
+  // or drawn markers. Otherwise it could observe temporary UI or dimensions.
   private async _captureViewportImage(
+    instanceId: string,
+    targetRole: string,
+    format?: string,
+    quality?: number,
+    maxBytes: number = MAX_INLINE_IMAGE_BYTES,
+    fallback: CaptureFallbackMode = 'viewport',
+  ): Promise<EncodedViewportCapture> {
+    const previous = this.viewportCaptureQueues.get(instanceId) ?? Promise.resolve();
+    const capture = previous.then(() => this._captureViewportImageNow(instanceId, targetRole, format, quality, maxBytes, fallback));
+    const settled = capture.then(() => undefined, () => undefined);
+    this.viewportCaptureQueues.set(instanceId, settled);
+    try {
+      return await capture;
+    } finally {
+      if (this.viewportCaptureQueues.get(instanceId) === settled) this.viewportCaptureQueues.delete(instanceId);
+    }
+  }
+
+  private async _captureViewportImageNow(
     instanceId: string,
     targetRole: string,
     format?: string,
@@ -5480,7 +5505,7 @@ export class RobloxStudioTools {
     let source = response.source ?? 'CaptureService';
     const hostReason = response.error
       ? `Studio's capture failed (${response.error})`
-      : response.encoding !== 'png' && this._isUniformRgbaResponse(response)
+      : this._isUniformCaptureResponse(response)
         ? "Studio's CaptureService returned a blank (single-colour) frame"
         : undefined;
     if (hostReason !== undefined) {
@@ -5625,10 +5650,11 @@ export class RobloxStudioTools {
     };
   }
 
-  private _isUniformRgbaResponse(response: RawImageCaptureResponse): boolean {
+  private _isUniformCaptureResponse(response: RawImageCaptureResponse): boolean {
     if (!response.data || !response.width || !response.height) return false;
-    const rgba = Buffer.from(response.data, 'base64');
-    return isUniformFrame(rgba, response.width, response.height);
+    const data = Buffer.from(response.data, 'base64');
+    if (response.encoding === 'png') return isUniformPng(data);
+    return isUniformFrame(data, response.width, response.height);
   }
 
   private _hostCaptureTitleHint(instanceId: string): string | undefined {
